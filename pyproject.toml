@@ -1,0 +1,9 @@
+[project]
+name = "AgenticPatternsLab"
+version = "0.1.0"
+description = "Agentic Patterns Lab"
+requires-python = ">=3.10"
+
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"
