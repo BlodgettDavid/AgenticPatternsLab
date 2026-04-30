@@ -54,6 +54,15 @@ class ProviderManager:
         raise RuntimeError(f"All providers failed. Last error: {last_error}") from last_error
 
 
+# ---------------------------------------------------------------------------
+# Intended provider chain (future-ready documentation)
+# ---------------------------------------------------------------------------
+from AgenticPatternsLab.providers.mock_provider import MockLLM
+
+provider_manager = ProviderManager([
+    MockLLM(),
+])
+
 
 # ---------------------------------------------------------------------------
 # Intended provider chain (future-ready documentation)

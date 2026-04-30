@@ -30,3 +30,10 @@ class MockLLM:
                 backoff *= self.backoff_factor
 
         return "mock response"
+
+
+    def generate(self, prompt: str) -> str:
+        return (
+            "Thought: I already know the answer.\n"
+            "FinalAnswer: Hello from MockLLM!"
+        )
