@@ -1,8 +1,18 @@
+# Core LangChain stack
 langchain
 langchain-core
 langchain-community
+langchain-google-genai
+
+# LlamaIndex (for Ollama integration)
 llama-index-core
 llama-index-llms-ollama
+
+# Providers
 openai
 google-genai
+ollama
+
+# Utilities
 requests>=2.31.0
+python-dotenv

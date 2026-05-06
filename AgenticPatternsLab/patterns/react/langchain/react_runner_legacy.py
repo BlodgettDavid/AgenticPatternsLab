@@ -1,129 +1,105 @@
-from unittest import result
+# AgenticPatternsLab/patterns/react/langchain/react_runner.py
 
-from langchain_core.language_models import FakeListLLM
-from langchain_community.llms import Ollama
-from AgenticPatternsLab.patterns.react.pure_python.react_runner import build_react_prompt
+from langchain_core.prompts import PromptTemplate
 from AgenticPatternsLab.utils.logging import create_logger, log_event
 
-# ---------------------------------------------------------
-# FUTURE PROVIDER SCAFFOLDING (COMMENTED OUT)
-# ---------------------------------------------------------
+# We will use the ProviderManager exactly like pure_python
+# The provider manager exposes: provider_manager.run(prompt)
+# which returns model_output or raises an error.
 
-# --- OpenAI (LangChain) ---
-# from langchain_openai import ChatOpenAI
-# Example usage:
-# llm = ChatOpenAI(
-#     model="gpt-4o",
-#     api_key="YOUR_OPENAI_API_KEY"
-# )
+def run_react_pattern(provider_manager, user_prompt=None):
+    """
+    LangChain implementation of the ReAct pattern.
+    Mirrors the pure_python runner but uses LangChain prompt templates
+    and message structures.
+    """
 
-# --- Azure OpenAI (LangChain) ---
-# from langchain_openai import AzureChatOpenAI
-# Example usage:
-# llm = AzureChatOpenAI(
-#     model="gpt-4o",
-#     azure_endpoint="https://YOUR_RESOURCE.openai.azure.com/",
-#     api_key="YOUR_AZURE_OPENAI_KEY",
-#     api_version="2024-02-15-preview"
-# )
-
-
-def run_react_pattern(provider: str):
-    print(f"Running React pattern using LangChain provider: {provider}")
-
-    # -------------------------
-    # PROVIDER SELECTION
-    # -------------------------
-    if provider == "mock":
-        llm = FakeListLLM(responses=[
-            "Thought: I should look this up.\nAction: search('France capital')",
-            "Observation: The capital of France is Paris.\nThought: I now know the answer.\nFinal Answer: Paris."
-        ])
-
-    elif provider == "ollama":
-        print("Using real LangChain Ollama provider.")
-        llm = Ollama(model="llama3", base_url="http://localhost:11434")
-
-    elif provider == "openai":
-        print("⚠️ OpenAI provider not yet implemented. Using mock LLM instead.")
-        # Uncomment this when ready:
-        # llm = ChatOpenAI(model="gpt-4o", api_key="YOUR_OPENAI_API_KEY")
-        llm = FakeListLLM(responses=[
-            "Thought: Using fallback mock LLM.\nAction: search('France capital')",
-            "Observation: The capital of France is Paris.\nThought: I now know the answer.\nFinal Answer: Paris."
-        ])
-
-    elif provider == "azure":
-        print("⚠️ Azure provider not yet implemented. Using mock LLM instead.")
-        # Uncomment this when ready:
-        # llm = AzureChatOpenAI(
-        #     model="gpt-4o",
-        #     azure_endpoint="https://YOUR_RESOURCE.openai.azure.com/",
-        #     api_key="YOUR_AZURE_OPENAI_KEY",
-        #     api_version="2024-02-15-preview"
-        # )
-        llm = FakeListLLM(responses=[
-            "Thought: Using fallback mock LLM.\nAction: search('France capital')",
-            "Observation: The capital of France is Paris.\nThought: I now know the answer.\nFinal Answer: Paris."
-        ])
-
-    else:
-        print(f"⚠️ Unknown provider '{provider}'. Using mock LLM instead.")
-        llm = FakeListLLM(responses=[
-            "Thought: Unknown provider.\nAction: search('France capital')",
-            "Observation: The capital of France is Paris.\nThought: I now know the answer.\nFinal Answer: Paris."
-        ])
-
-    # -------------------------
-    # LOGGING SETUP
-    # -------------------------
     log_path = create_logger(prefix="react_langchain")
-    log_event(log_path, "start", f"provider={provider}")
+    log_event(log_path, "start", f"prompt={user_prompt}")
 
-    # -------------------------
-    # INITIAL PROMPT
-    # -------------------------
-    prompt = "What is the capital of France?"
-    log_event(log_path, "prompt", prompt)
+    # ------------------------------------------------------------
+    # Build the ReAct prompt using LangChain PromptTemplate
+    # ------------------------------------------------------------
+    template = """
+You are an AI agent that MUST follow the ReAct (Reasoning + Acting) pattern.
+You MUST obey every rule below with ZERO exceptions.
 
-    # -------------------------
-    # REACT LOOP
-    # -------------------------
-    while True:
+===========================
+REQUIRED OUTPUT FORMATS
+===========================
 
-        react_prompt = build_react_prompt(prompt)
-        result = llm.invoke(react_prompt)
+CRITICAL TERMINATION RULE:
+If the Observation already contains the answer to the user’s question,
+you MUST immediately produce:
 
-        print("\nLLM Output:")
-        print(result)
+Thought: I now know the answer.
+Final Answer: <the answer>
 
-        log_event(log_path, "llm_output", result)
+(1) When reasoning or deciding what to do next:
+Thought: <your reasoning>
+Action: search('<query>')
 
-        # Final answer?
-        if "Final Answer:" in result:
-            final = result.split("Final Answer:")[1].strip()
-            log_event(log_path, "final_answer", final)
-            print(f"\nFinal Answer: {final}")
-            break
+(2) When you have enough information to answer:
+Thought: <your reasoning>
+Final Answer: <your answer>
 
-        # Action?
-        if "Action:" in result:
-            action_index = result.find("Action:")
-            if action_index != -1:
-                action_line = result[action_index + len("Action:"):].strip()
+===========================
+STRICT, NON‑NEGOTIABLE RULES
+===========================
 
-            log_event(log_path, "action", action_line)
-            print(f"\nParsed Action: {action_line}")
+- You MUST begin EVERY response with "Thought:".
+- You MUST include a Thought step before EVERY Action or Final Answer.
+- You MUST NOT output anything before "Thought:".
+- You MUST NOT invent tools. The ONLY tool you may use is: search(query).
+- Tool calls MUST be formatted EXACTLY like: search('some query')
+- After receiving an Observation, you MUST produce a NEW Thought.
+- You MUST NOT answer directly without using the required format.
+- You MUST NOT switch formats mid‑response.
+- You MUST NOT include multiple Actions in one response.
+- You MUST NOT include both Action AND Final Answer in the same response.
+- If you violate ANY rule, you MUST output EXACTLY: FORMAT ERROR
 
-            # Simulated tool execution
-            observation = "The capital of France is Paris."
-            log_event(log_path, "observation", observation)
+===========================
+YOUR TASK
+===========================
 
-            # Feed back into LLM
-            prompt = f"Observation: {observation}"
-            log_event(log_path, "next_prompt", prompt)
+Follow the rules above EXACTLY.
+Never break character.
+Never output anything except the required ReAct fields.
 
-        else:
-            log_event(log_path, "error", "No action found")
-            print("No action found. Stopping.")
-            break
+Here is the user input:
+{user_input}
+"""
+
+    prompt = PromptTemplate(
+        input_variables=["user_input"],
+        template=template
+    )
+
+    # ------------------------------------------------------------
+    # Format the prompt
+    # ------------------------------------------------------------
+    full_prompt = prompt.format(user_input=user_prompt)
+
+    # ------------------------------------------------------------
+    # Call the provider manager (same as pure_python)
+    # ------------------------------------------------------------
+    try:
+        model_output = provider_manager.generate(full_prompt)
+        log_event(log_path, "model_output", model_output)
+    except Exception as e:
+        log_event(log_path, "provider_error", str(e))
+        print("Provider error:", e)
+        return
+
+    # ------------------------------------------------------------
+    # For now, just print the model output.
+    # Later we will add:
+    # - ReAct parsing
+    # - Action detection
+    # - Observation loop
+    # - FORMAT ERROR enforcement
+    # ------------------------------------------------------------
+    print(model_output)
+
+    log_event(log_path, "complete", "react_langchain finished")
