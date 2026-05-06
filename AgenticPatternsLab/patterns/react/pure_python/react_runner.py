@@ -1,64 +1,12 @@
 from AgenticPatternsLab.utils.logging import create_logger, log_event
+from .pattern_runner import PatternRunner
+from .prompting import build_react_prompt
+import re
 
-def build_react_prompt(user_prompt: str) -> str:
-    return (
-        "You are an AI agent that MUST follow the ReAct (Reasoning + Acting) pattern.\n"
-        "You MUST obey every rule below with ZERO exceptions.\n\n"
-        "===========================\n"
-        "REQUIRED OUTPUT FORMATS\n"
-        "===========================\n\n"
-        "CRITICAL TERMINATION RULE:\n"
-        "If the Observation already contains the answer to the user’s question,\n"
-        "you MUST immediately produce:\n\n"
-        "Thought: I now know the answer.\n"
-        "Final Answer: <the answer>\n\n"
-        "You MUST NOT perform another Action after this condition is met.\n\n"
-        "(1) When reasoning or deciding what to do next:\n"
-        "Thought: <your reasoning>\n"
-        "Action: search('<query>')\n\n"
-        "(2) When you have enough information to answer:\n"
-        "Thought: <your reasoning>\n"
-        "Final Answer: <your answer>\n\n"
-        "===========================\n"
-        "STRICT, NON‑NEGOTIABLE RULES\n"
-        "===========================\n\n"
-        "- You MUST begin EVERY response with \"Thought:\".\n"
-        "- You MUST include a Thought step before EVERY Action or Final Answer.\n"
-        "- You MUST NOT output anything before \"Thought:\".\n"
-        "- You MUST NOT output explanations, greetings, apologies, or commentary.\n"
-        "- You MUST NOT invent tools. The ONLY tool you may use is: search(query).\n"
-        "- Tool calls MUST be formatted EXACTLY like: search('some query')\n"
-        "- After receiving an Observation, you MUST produce a NEW Thought.\n"
-        "- You MUST NOT answer directly without using the required format.\n"
-        "- You MUST NOT switch formats mid‑response.\n"
-        "- You MUST NOT include multiple Actions in one response.\n"
-        "- You MUST NOT include both Action AND Final Answer in the same response.\n"
-        "- If you already know the answer, you MUST STILL follow the ReAct format.\n"
-        "- If you violate ANY rule, you MUST output EXACTLY: FORMAT ERROR\n\n"
-        "===========================\n"
-        "FEW‑SHOT EXAMPLES (FOLLOW THESE EXACTLY)\n"
-        "===========================\n\n"
-        "Example 1:\n"
-        "User: What is the capital of France?\n"
-        "Assistant:\n"
-        "Thought: I should verify the answer using the search tool.\n"
-        "Action: search('capital of France')\n\n"
-        "Example 2 (after Observation):\n"
-        "Observation: Paris.\n"
-        "Assistant:\n"
-        "Thought: I now know the answer.\n"
-        "Final Answer: Paris.\n\n"
-        "===========================\n"
-        "YOUR TASK\n"
-        "===========================\n\n"
-        "Follow the rules above EXACTLY.\n"
-        "Never break character.\n"
-        "Never change the required format.\n"
-        "Never output anything except the required ReAct fields.\n\n"
-        "Here is the user input:\n"
-        f"{user_prompt}"
-    )
 
+# ------------------------------------------------------------
+# Tool Simulation (kept exactly as-is, moved above the class)
+# ------------------------------------------------------------
 def simulate_search_tool(query: str) -> str:
     query = query.lower()
 
@@ -74,7 +22,129 @@ def simulate_search_tool(query: str) -> str:
     return "No relevant information found."
 
 
+# ------------------------------------------------------------
+# Pure-Python ReAct Runner (new architecture)
+# ------------------------------------------------------------
+class PurePythonReactRunner(PatternRunner):
+    """
+    Pure-Python implementation of the ReAct pattern.
+    Subclasses PatternRunner and plugs in the existing prompt + tool logic.
+    """
+
+    def build_initial_prompt(self, user_prompt: str) -> str:
+        return build_react_prompt(user_prompt)
+
+    def ask_llm_for_step(self, prompt: str) -> str:
+        # provider_chain is inherited from PatternRunner.__init__
+        return self.provider_chain.generate(prompt)
+
+    def parse_llm_output(self, llm_output: str) -> dict:
+        """
+        Strictly parse the LLM output into:
+        - exactly one Thought
+        - at most one Action
+        - at most one Final Answer
+        - no Action + Final Answer together
+        - no multiple Actions
+        - no text before Thought
+        """
+        parsed = {
+            "thought": None,
+            "action": None,
+            "final_answer": None,
+        }
+
+        lines = [line.rstrip() for line in llm_output.splitlines() if line.strip()]
+
+        if not lines:
+            raise RuntimeError("Empty LLM output.")
+
+        # 1) First non-empty line must start with Thought:
+        if not lines[0].startswith("Thought:"):
+            raise RuntimeError("LLM output must begin with 'Thought:'.")
+
+        state = "thought"  # thought -> action_or_final -> done
+
+        for line in lines:
+            if line.startswith("Thought:"):
+                if state != "thought":
+                    # Thought must only appear at the beginning
+                    raise RuntimeError("Thought may only appear once at the beginning.")
+                if parsed["thought"] is not None:
+                    raise RuntimeError("Multiple Thought lines are not allowed.")
+                parsed["thought"] = line[len("Thought:"):].strip()
+                state = "action_or_final"
+                continue
+
+            if line.startswith("Action:"):
+                if state != "action_or_final":
+                    raise RuntimeError("Action in invalid position.")
+                if parsed["action"] is not None:
+                    raise RuntimeError("Multiple Actions are not allowed.")
+                if parsed["final_answer"] is not None:
+                    raise RuntimeError("Cannot have Action after Final Answer.")
+
+                action_text = line[len("Action:"):].strip()
+
+                # Strict action validation: must match exactly search('...')
+                import re
+                if not re.fullmatch(r"search\('[^']*'\)", action_text):
+                    raise RuntimeError(f"Malformed action: {action_text}")
+
+                parsed["action"] = action_text
+                state = "done"
+                continue
+
+
+            if line.startswith("Final Answer:"):
+                if state != "action_or_final":
+                    raise RuntimeError("Final Answer in invalid position.")
+                if parsed["final_answer"] is not None:
+                    raise RuntimeError("Multiple Final Answer lines are not allowed.")
+                if parsed["action"] is not None:
+                    raise RuntimeError("Cannot have both Action and Final Answer.")
+                parsed["final_answer"] = line[len("Final Answer:"):].strip()
+                state = "done"
+                continue
+
+            # Any other content is illegal under strict ReAct
+            raise RuntimeError(f"Unexpected content in LLM output: {line}")
+
+        # Final sanity check
+        if parsed["action"] is None and parsed["final_answer"] is None:
+            raise RuntimeError("LLM output contained no action and no final answer.")
+
+        return parsed
+
+
+    def execute_action(self, action: str) -> str:
+        """
+        Execute search('query') using your existing simulate_search_tool.
+        """
+        match = re.match(r"search\('(.*)'\)", action)
+        if not match:
+            raise RuntimeError(f"Malformed action: {action}")
+
+        query = match.group(1)
+        return simulate_search_tool(query)
+
+    def is_done(self, parsed: dict) -> bool:
+        return parsed.get("final_answer") is not None
+
+    def collect_results(self, parsed: dict) -> str:
+        return parsed["final_answer"]
+
+
+# ------------------------------------------------------------
+# Legacy procedural runner (kept for now, deprecated)
+# ------------------------------------------------------------
 def run_react_pattern(provider_chain, user_prompt: str = "What is the capital of France?"):
+    """
+    TODO: DEPRECATE — replaced by PurePythonReactRunner.run()
+
+    This is the old procedural implementation of the ReAct loop.
+    It remains here temporarily for reference and comparison.
+    """
     print(f"Running React pattern using Pure Python provider chain: {provider_chain}")
 
     log_path = create_logger(prefix="react_pure_python")
