@@ -1,15 +1,19 @@
-from AgenticPatternsLab.patterns.react.pure_python.react_runner import PurePythonReactRunner
+import pytest
+from AgenticPatternsLab.patterns.react.pure_python.strict_react_runner import StrictReactRunner
 
-# This provider intentionally violates the ReAct format
+# -----------------------------
+# Providers that violate format
+# -----------------------------
+
 class BadProvider_MissingThought:
     def generate(self, prompt: str) -> str:
-        return "Action: search('capital of France')"  # Missing Thought
+        return "Action: search('capital of France')"
 
 class BadProvider_DoubleQuotes:
     def generate(self, prompt: str) -> str:
         return (
             "Thought: I should search.\n"
-            "Action: search(\"capital of France\")"  # Wrong quotes
+            "Action: search(\"capital of France\")"
         )
 
 class BadProvider_ActionAndFinal:
@@ -17,7 +21,7 @@ class BadProvider_ActionAndFinal:
         return (
             "Thought: I know the answer.\n"
             "Action: search('capital of France')\n"
-            "Final Answer: Paris."
+            "FinalAnswer: Paris."
         )
 
 class BadProvider_MultipleActions:
@@ -28,20 +32,26 @@ class BadProvider_MultipleActions:
             "Action: search('population of Seattle')"
         )
 
-def run_test(provider, label):
-    print(f"\n=== TEST: {label} ===")
-    runner = PurePythonReactRunner(provider)
-    try:
-        result = runner.run("What is the capital of France?")
-        print("Unexpected success:", result)
-    except Exception as e:
-        print("Caught expected error:", e)
+# -----------------------------
+# Tests
+# -----------------------------
 
-def main():
-    run_test(BadProvider_MissingThought(), "Missing Thought")
-    run_test(BadProvider_DoubleQuotes(), "Double Quotes in Action")
-    run_test(BadProvider_ActionAndFinal(), "Action + Final Answer")
-    run_test(BadProvider_MultipleActions(), "Multiple Actions")
+def test_missing_thought():
+    runner = StrictReactRunner(BadProvider_MissingThought())
+    with pytest.raises(ValueError):
+        runner.run("What is the capital of France?")
 
-if __name__ == "__main__":
-    main()
+def test_double_quotes_in_action():
+    runner = StrictReactRunner(BadProvider_DoubleQuotes())
+    with pytest.raises(ValueError):
+        runner.run("What is the capital of France?")
+
+def test_action_and_final_answer_same_step():
+    runner = StrictReactRunner(BadProvider_ActionAndFinal())
+    with pytest.raises(ValueError):
+        runner.run("What is the capital of France?")
+
+def test_multiple_actions():
+    runner = StrictReactRunner(BadProvider_MultipleActions())
+    with pytest.raises(ValueError):
+        runner.run("What is the capital of France?")
