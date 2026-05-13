@@ -1,4 +1,5 @@
-from AgenticPatternsLab.patterns.react.pure_python.react_runner import PurePythonReactRunner
+import pytest
+from AgenticPatternsLab.patterns.react.pure_python.strict_react_runner import StrictReactRunner
 
 class MissingThoughtProvider:
     """
@@ -7,16 +8,9 @@ class MissingThoughtProvider:
     def generate(self, prompt: str) -> str:
         return "Action: search('capital of France')"
 
-def main():
+def test_missing_thought():
     provider = MissingThoughtProvider()
-    runner = PurePythonReactRunner(provider)
+    runner = StrictReactRunner(provider)
 
-    try:
-        result = runner.run("What is the capital of France?")
-        print("Unexpected success:", result)
-    except Exception as e:
-        print("\n=== EXPECTED ERROR ===")
-        print(e)
-
-if __name__ == "__main__":
-    main()
+    with pytest.raises(ValueError):
+        runner.run("What is the capital of France?")

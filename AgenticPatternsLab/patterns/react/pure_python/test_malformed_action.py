@@ -1,7 +1,7 @@
-from AgenticPatternsLab.patterns.react.pure_python.react_runner import PurePythonReactRunner
+import pytest
+from AgenticPatternsLab.patterns.react.pure_python.strict_react_runner import StrictReactRunner
 
-# Each provider returns a malformed Action line.
-# The runner should reject all of them.
+# --- Providers with malformed Action lines ---
 
 class BadAction_DoubleQuotes:
     def generate(self, prompt: str) -> str:
@@ -38,21 +38,16 @@ class BadAction_MissingParen:
             "Action: search 'capital of France'"
         )
 
-def run_test(provider, label):
-    print(f"\n=== TEST: {label} ===")
-    runner = PurePythonReactRunner(provider)
-    try:
-        result = runner.run("What is the capital of France?")
-        print("Unexpected success:", result)
-    except Exception as e:
-        print("Caught expected error:", e)
+# --- Pytest tests ---
 
-def main():
-    run_test(BadAction_DoubleQuotes(), "Double Quotes")
-    run_test(BadAction_NoQuotes(), "No Quotes")
-    run_test(BadAction_MismatchedQuotes(), "Mismatched Quotes")
-    run_test(BadAction_ExtraText(), "Extra Text After Action")
-    run_test(BadAction_MissingParen(), "Missing Parentheses")
-
-if __name__ == "__main__":
-    main()
+@pytest.mark.parametrize("provider", [
+    BadAction_DoubleQuotes(),
+    BadAction_NoQuotes(),
+    BadAction_MismatchedQuotes(),
+    BadAction_ExtraText(),
+    BadAction_MissingParen(),
+])
+def test_malformed_actions(provider):
+    runner = StrictReactRunner(provider)
+    with pytest.raises(ValueError):
+        runner.run("What is the capital of France?")

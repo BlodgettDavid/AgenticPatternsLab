@@ -1,4 +1,5 @@
-from AgenticPatternsLab.patterns.react.pure_python.react_runner import PurePythonReactRunner
+import pytest
+from AgenticPatternsLab.patterns.react.pure_python.strict_react_runner import StrictReactRunner
 
 class MultiStepProvider:
     """
@@ -33,18 +34,15 @@ class MultiStepProvider:
             "Final Answer: Dune was written by Frank Herbert and published in 1965."
         )
 
-
-def main():
+def test_multistep_react():
     provider = MultiStepProvider()
-    runner = PurePythonReactRunner(provider)
+    runner = StrictReactRunner(provider)
 
     result = runner.run("Who wrote Dune and when was it published?")
-    print("\n=== FINAL RESULT ===")
-    print(result)
 
-    print("\n=== CALL COUNT ===")
-    print(provider.call_count)
+    # Assert final answer is correct
+    assert "Frank Herbert" in result
+    assert "1965" in result
 
-
-if __name__ == "__main__":
-    main()
+    # Assert exactly 3 LLM calls were made
+    assert provider.call_count == 3
