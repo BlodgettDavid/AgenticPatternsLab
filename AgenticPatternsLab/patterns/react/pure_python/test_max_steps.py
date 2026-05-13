@@ -1,4 +1,5 @@
-from AgenticPatternsLab.patterns.react.pure_python.react_runner import PurePythonReactRunner
+import pytest
+from AgenticPatternsLab.patterns.react.pure_python.strict_react_runner import StrictReactRunner
 
 class InfiniteActionProvider:
     """
@@ -11,16 +12,9 @@ class InfiniteActionProvider:
             "Action: search('loop forever')"
         )
 
-def main():
+def test_max_steps_termination():
     provider = InfiniteActionProvider()
-    runner = PurePythonReactRunner(provider)
+    runner = StrictReactRunner(provider)
 
-    try:
-        result = runner.run("This will never terminate normally.")
-        print("Unexpected success:", result)
-    except Exception as e:
-        print("\n=== EXPECTED TERMINATION ===")
-        print(e)
-
-if __name__ == "__main__":
-    main()
+    with pytest.raises(Exception):
+        runner.run("This will never terminate normally.")

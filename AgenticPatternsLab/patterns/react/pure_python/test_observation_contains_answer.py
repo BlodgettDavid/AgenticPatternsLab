@@ -1,4 +1,5 @@
-from AgenticPatternsLab.patterns.react.pure_python.react_runner import PurePythonReactRunner
+import pytest
+from AgenticPatternsLab.patterns.react.pure_python.strict_react_runner import StrictReactRunner
 
 class ObservationContainsAnswerProvider:
     """
@@ -24,18 +25,14 @@ class ObservationContainsAnswerProvider:
             "Final Answer: Paris."
         )
 
-
-def main():
+def test_observation_contains_answer():
     provider = ObservationContainsAnswerProvider()
-    runner = PurePythonReactRunner(provider)
+    runner = StrictReactRunner(provider)
 
     result = runner.run("What is the capital of France?")
-    print("\n=== FINAL RESULT ===")
-    print(result)
 
-    print("\n=== CALL COUNT ===")
-    print(provider.call_count)
+    # Assert final answer is correct
+    assert "Paris" in result
 
-
-if __name__ == "__main__":
-    main()
+    # Assert exactly 2 LLM calls were made
+    assert provider.call_count == 2
