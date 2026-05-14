@@ -5,7 +5,7 @@ from langchain_core.language_models import BaseLanguageModel
 from langchain_core.messages import HumanMessage, AIMessage
 
 from AgenticPatternsLab.patterns.react.pure_python.prompting import build_react_prompt
-from AgenticPatternsLab.patterns.react.pure_python.react_runner import (
+from AgenticPatternsLab.patterns.react.pure_python.strict_react_runner import (
     parse_llm_output,
     execute_action,
 )
@@ -47,12 +47,12 @@ class LangChainReactRunner:
 
         return str(result)
 
-    # ------------------------------------------------------------
+        # ------------------------------------------------------------
     # Main ReAct loop (local version)
     # ------------------------------------------------------------
     def run(self, user_query: str) -> str:
-        transcript: List[str] = []
-        prompt = build_react_prompt(user_query, transcript)
+        # Strict prompt builder currently only takes the user query
+        prompt = build_react_prompt(user_query)
 
         for step in range(self.max_steps):
             # 1. Call LangChain LLM
@@ -66,12 +66,14 @@ class LangChainReactRunner:
             if parsed["final_answer"] is not None:
                 return parsed["final_answer"]
 
-            # 4. Execute Action
+            # 4. Execute Action (multi-step not really used in the current test,
+            #    but we keep the hook here for future extension)
             if parsed["action"] is not None:
                 observation = execute_action(parsed["action"])
-                transcript.append(f"Observation: {observation}")
-
-            # 5. Rebuild prompt with updated transcript
-            prompt = build_react_prompt(user_query, transcript)
+                # For now we ignore the observation in the prompt, since the
+                # strict prompt builder doesn't yet accept a transcript.
+                # In a future step, we'll extend the prompt builder to include
+                # observations between turns.
+                prompt = build_react_prompt(user_query)
 
         raise RuntimeError("Max steps reached without producing a final answer.")
