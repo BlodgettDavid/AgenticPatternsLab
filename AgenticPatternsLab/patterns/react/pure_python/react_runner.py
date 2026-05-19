@@ -1,11 +1,17 @@
 from AgenticPatternsLab.utils.logging import create_logger, log_event
-from .pattern_runner import PatternRunner
+from .abstract_pattern_runner import PatternRunner
 from .prompting import build_react_prompt
 import re
 
+# ------------------------------------------------------------
+# Strict Action Regex (shared with tests)
+# ------------------------------------------------------------
+ACTION_RE = re.compile(
+    r"^Action:\s*([a-zA-Z_][a-zA-Z0-9_]*)\('([^'\n]+)'\)$"
+)
 
 # ------------------------------------------------------------
-# Tool Simulation (kept exactly as-is, moved above the class)
+# Tool Simulation
 # ------------------------------------------------------------
 def simulate_search_tool(query: str) -> str:
     query = query.lower()
@@ -23,31 +29,22 @@ def simulate_search_tool(query: str) -> str:
 
 
 # ------------------------------------------------------------
-# Pure-Python ReAct Runner (new architecture)
+# Pure-Python ReAct Runner (strict engine)
 # ------------------------------------------------------------
 class PurePythonReactRunner(PatternRunner):
     """
     Pure-Python implementation of the ReAct pattern.
-    Subclasses PatternRunner and plugs in the existing prompt + tool logic.
+    Strict mode: exactly one Thought, at most one Action or Final Answer,
+    no mixing, no malformed actions, no extra text.
     """
 
     def build_initial_prompt(self, user_prompt: str) -> str:
         return build_react_prompt(user_prompt)
 
     def ask_llm_for_step(self, prompt: str) -> str:
-        # provider_chain is inherited from PatternRunner.__init__
         return self.provider_chain.generate(prompt)
 
     def parse_llm_output(self, llm_output: str) -> dict:
-        """
-        Strictly parse the LLM output into:
-        - exactly one Thought
-        - at most one Action
-        - at most one Final Answer
-        - no Action + Final Answer together
-        - no multiple Actions
-        - no text before Thought
-        """
         parsed = {
             "thought": None,
             "action": None,
@@ -55,77 +52,92 @@ class PurePythonReactRunner(PatternRunner):
         }
 
         lines = [line.rstrip() for line in llm_output.splitlines() if line.strip()]
-
         if not lines:
-            raise RuntimeError("Empty LLM output.")
+            raise ValueError("Empty LLM output.")
 
-        # 1) First non-empty line must start with Thought:
+        # First line must be Thought
         if not lines[0].startswith("Thought:"):
-            raise RuntimeError("LLM output must begin with 'Thought:'.")
+            raise ValueError("LLM output must begin with 'Thought:'.")
 
-        state = "thought"  # thought -> action_or_final -> done
+        state = "thought"
 
         for line in lines:
+            # -------------------------
+            # Thought
+            # -------------------------
             if line.startswith("Thought:"):
                 if state != "thought":
-                    # Thought must only appear at the beginning
-                    raise RuntimeError("Thought may only appear once at the beginning.")
+                    raise ValueError("Thought may only appear once at the beginning.")
                 if parsed["thought"] is not None:
-                    raise RuntimeError("Multiple Thought lines are not allowed.")
+                    raise ValueError("Multiple Thought lines are not allowed.")
                 parsed["thought"] = line[len("Thought:"):].strip()
                 state = "action_or_final"
                 continue
 
+            # -------------------------
+            # Action
+            # -------------------------
             if line.startswith("Action:"):
                 if state != "action_or_final":
-                    raise RuntimeError("Action in invalid position.")
+                    raise ValueError("Action in invalid position.")
                 if parsed["action"] is not None:
-                    raise RuntimeError("Multiple Actions are not allowed.")
+                    raise ValueError("Multiple Actions are not allowed.")
                 if parsed["final_answer"] is not None:
-                    raise RuntimeError("Cannot have Action after Final Answer.")
+                    raise ValueError("Cannot have Action after Final Answer.")
 
-                action_text = line[len("Action:"):].strip()
+                # Use shared strict regex
+                match = ACTION_RE.match(line)
+                if not match:
+                    raise ValueError(f"Malformed action: {line}")
 
-                # Strict action validation: must match exactly search('...')
-                import re
-                if not re.fullmatch(r"search\('[^']*'\)", action_text):
-                    raise RuntimeError(f"Malformed action: {action_text}")
-
-                parsed["action"] = action_text
+                tool_name = match.group(1)
+                argument = match.group(2)
+                parsed["action"] = f"{tool_name}('{argument}')"
                 state = "done"
                 continue
 
-
+            # -------------------------
+            # Final Answer
+            # -------------------------
             if line.startswith("Final Answer:"):
                 if state != "action_or_final":
-                    raise RuntimeError("Final Answer in invalid position.")
+                    raise ValueError("Final Answer in invalid position.")
                 if parsed["final_answer"] is not None:
-                    raise RuntimeError("Multiple Final Answer lines are not allowed.")
+                    raise ValueError("Multiple Final Answer lines are not allowed.")
                 if parsed["action"] is not None:
-                    raise RuntimeError("Cannot have both Action and Final Answer.")
+                    raise ValueError("Cannot have both Action and Final Answer.")
+
                 parsed["final_answer"] = line[len("Final Answer:"):].strip()
                 state = "done"
                 continue
 
-            # Any other content is illegal under strict ReAct
-            raise RuntimeError(f"Unexpected content in LLM output: {line}")
+            # -------------------------
+            # Anything else is illegal
+            # -------------------------
+            raise ValueError(f"Unexpected content in LLM output: {line}")
 
         # Final sanity check
         if parsed["action"] is None and parsed["final_answer"] is None:
-            raise RuntimeError("LLM output contained no action and no final answer.")
+            raise ValueError("LLM output contained no action and no final answer.")
 
         return parsed
 
-
     def execute_action(self, action: str) -> str:
         """
-        Execute search('query') using your existing simulate_search_tool.
+        Execute search('query') using simulate_search_tool.
+        Other tools parse correctly but are not executable.
         """
-        match = re.match(r"search\('(.*)'\)", action)
+        # Reconstruct full Action: ... line for regex matching
+        match = ACTION_RE.match(f"Action: {action}")
         if not match:
-            raise RuntimeError(f"Malformed action: {action}")
+            raise ValueError(f"Malformed action: {action}")
 
-        query = match.group(1)
+        tool = match.group(1)
+        query = match.group(2)
+
+        if tool != "search":
+            raise ValueError(f"Unknown tool: {tool}")
+
         return simulate_search_tool(query)
 
     def is_done(self, parsed: dict) -> bool:
@@ -136,14 +148,11 @@ class PurePythonReactRunner(PatternRunner):
 
 
 # ------------------------------------------------------------
-# Legacy procedural runner (kept for now, deprecated)
+# Legacy procedural runner (deprecated)
 # ------------------------------------------------------------
 def run_react_pattern(provider_chain, user_prompt: str = "What is the capital of France?"):
     """
-    TODO: DEPRECATE — replaced by PurePythonReactRunner.run()
-
-    This is the old procedural implementation of the ReAct loop.
-    It remains here temporarily for reference and comparison.
+    Deprecated: replaced by PurePythonReactRunner.run()
     """
     print(f"Running React pattern using Pure Python provider chain: {provider_chain}")
 
@@ -158,8 +167,6 @@ def run_react_pattern(provider_chain, user_prompt: str = "What is the capital of
 
     while steps < MAX_STEPS:
         steps += 1
-
-        # *** ProviderManager call ***
         result = provider_chain.generate(prompt)
 
         if "FORMAT ERROR" in result:

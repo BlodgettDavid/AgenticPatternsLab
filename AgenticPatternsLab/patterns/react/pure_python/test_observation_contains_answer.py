@@ -1,5 +1,6 @@
 import pytest
-from AgenticPatternsLab.patterns.react.pure_python.strict_react_runner import StrictReactRunner
+from AgenticPatternsLab.patterns.react.pure_python.react_runner import PurePythonReactRunner
+
 
 class ObservationContainsAnswerProvider:
     """
@@ -25,9 +26,10 @@ class ObservationContainsAnswerProvider:
             "Final Answer: Paris."
         )
 
+
 def test_observation_contains_answer():
     provider = ObservationContainsAnswerProvider()
-    runner = StrictReactRunner(provider)
+    runner = PurePythonReactRunner(provider)
 
     result = runner.run("What is the capital of France?")
 
