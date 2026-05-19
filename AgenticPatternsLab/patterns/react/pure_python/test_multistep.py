@@ -1,5 +1,6 @@
 import pytest
-from AgenticPatternsLab.patterns.react.pure_python.strict_react_runner import StrictReactRunner
+from AgenticPatternsLab.patterns.react.pure_python.react_runner import PurePythonReactRunner
+
 
 class MultiStepProvider:
     """
@@ -34,9 +35,10 @@ class MultiStepProvider:
             "Final Answer: Dune was written by Frank Herbert and published in 1965."
         )
 
+
 def test_multistep_react():
     provider = MultiStepProvider()
-    runner = StrictReactRunner(provider)
+    runner = PurePythonReactRunner(provider)
 
     result = runner.run("Who wrote Dune and when was it published?")
 
