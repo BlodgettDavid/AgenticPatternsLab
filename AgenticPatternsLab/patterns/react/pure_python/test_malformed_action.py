@@ -1,5 +1,6 @@
 import pytest
-from AgenticPatternsLab.patterns.react.pure_python.strict_react_runner import StrictReactRunner
+from AgenticPatternsLab.patterns.react.pure_python.react_runner import PurePythonReactRunner
+
 
 # --- Providers with malformed Action lines ---
 
@@ -10,12 +11,14 @@ class BadAction_DoubleQuotes:
             "Action: search(\"capital of France\")"
         )
 
+
 class BadAction_NoQuotes:
     def generate(self, prompt: str) -> str:
         return (
             "Thought: I should search.\n"
             "Action: search(capital of France)"
         )
+
 
 class BadAction_MismatchedQuotes:
     def generate(self, prompt: str) -> str:
@@ -24,6 +27,7 @@ class BadAction_MismatchedQuotes:
             "Action: search('capital of France\")"
         )
 
+
 class BadAction_ExtraText:
     def generate(self, prompt: str) -> str:
         return (
@@ -31,12 +35,14 @@ class BadAction_ExtraText:
             "Action: search('capital of France') extra"
         )
 
+
 class BadAction_MissingParen:
     def generate(self, prompt: str) -> str:
         return (
             "Thought: I should search.\n"
             "Action: search 'capital of France'"
         )
+
 
 # --- Pytest tests ---
 
@@ -48,6 +54,6 @@ class BadAction_MissingParen:
     BadAction_MissingParen(),
 ])
 def test_malformed_actions(provider):
-    runner = StrictReactRunner(provider)
+    runner = PurePythonReactRunner(provider)
     with pytest.raises(ValueError):
         runner.run("What is the capital of France?")

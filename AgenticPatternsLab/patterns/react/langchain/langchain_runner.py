@@ -1,24 +1,39 @@
 # patterns/react/langchain/langchain_runner.py
-
-from typing import Any, List
+from typing import Any
 from langchain_core.language_models import BaseLanguageModel
 from langchain_core.messages import HumanMessage, AIMessage
 
-from AgenticPatternsLab.patterns.react.pure_python.prompting import build_react_prompt
-from AgenticPatternsLab.patterns.react.pure_python.strict_react_runner import (
-    parse_llm_output,
-    execute_action,
+from AgenticPatternsLab.patterns.react.pure_python.react_runner import (
+    PurePythonReactRunner,
 )
 
 
-class LangChainReactRunner:
+class LangChainReactRunner(PurePythonReactRunner):
     """
-    Local LangChain ReAct runner (Step 3g).
-    Mirrors the pure‑Python runner but uses LangChain's LLM interface.
-    """
+    LangChain-backed ReAct runner.
 
-    def __init__(self, llm: BaseLanguageModel, max_steps: int = 10):
+    This class reuses the strict ReAct engine implemented in PurePythonReactRunner:
+    - strict Thought / Action / Final Answer parsing
+    - strict ACTION_RE validation
+    - strict multi-step loop
+    - strict action execution
+    - strict error semantics
+
+    Only the LLM invocation is overridden to use LangChain's .invoke() API.
+    """
+    def __init__(self, llm: BaseLanguageModel, max_steps: int = 10, *args, **kwargs):
+        provider_chain = {
+            "type": "langchain",
+            "llm": llm,
+        }
+
+        # Initialize strict engine
+        super().__init__(provider_chain=provider_chain, *args, **kwargs)
+
+        # Store LLM
         self.llm = llm
+
+        # Set max steps manually (PatternRunner does NOT accept it)
         self.max_steps = max_steps
 
     # ------------------------------------------------------------
@@ -47,33 +62,14 @@ class LangChainReactRunner:
 
         return str(result)
 
-        # ------------------------------------------------------------
-    # Main ReAct loop (local version)
     # ------------------------------------------------------------
-    def run(self, user_query: str) -> str:
-        # Strict prompt builder currently only takes the user query
-        prompt = build_react_prompt(user_query)
-
-        for step in range(self.max_steps):
-            # 1. Call LangChain LLM
-            lc_result = self.llm.invoke([HumanMessage(content=prompt)])
-            llm_output = self._extract_text(lc_result)
-
-            # 2. Parse Thought / Action / Final Answer
-            parsed = parse_llm_output(llm_output)
-
-            # 3. Final Answer → return immediately
-            if parsed["final_answer"] is not None:
-                return parsed["final_answer"]
-
-            # 4. Execute Action (multi-step not really used in the current test,
-            #    but we keep the hook here for future extension)
-            if parsed["action"] is not None:
-                observation = execute_action(parsed["action"])
-                # For now we ignore the observation in the prompt, since the
-                # strict prompt builder doesn't yet accept a transcript.
-                # In a future step, we'll extend the prompt builder to include
-                # observations between turns.
-                prompt = build_react_prompt(user_query)
-
-        raise RuntimeError("Max steps reached without producing a final answer.")
+    # Override only the LLM call
+    # ------------------------------------------------------------
+    def ask_llm_for_step(self, prompt: str) -> str:
+        """
+        PurePythonReactRunner calls this method to get the next LLM step.
+        Here we adapt that call to LangChain's .invoke() API.
+        """
+        # LangChain chat models expect a list of messages
+        result = self.llm.invoke([HumanMessage(content=prompt)])
+        return self._extract_text(result)

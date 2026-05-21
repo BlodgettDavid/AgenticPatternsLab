@@ -1,5 +1,6 @@
 import pytest
-from AgenticPatternsLab.patterns.react.pure_python.strict_react_runner import StrictReactRunner
+from AgenticPatternsLab.patterns.react.pure_python.react_runner import PurePythonReactRunner
+
 
 class MockProvider:
     def generate(self, prompt: str) -> str:
@@ -15,9 +16,10 @@ class MockProvider:
             "Final Answer: Paris."
         )
 
+
 def test_runner_basic_flow():
     provider = MockProvider()
-    runner = StrictReactRunner(provider)
+    runner = PurePythonReactRunner(provider)
 
     result = runner.run("What is the capital of France?")
 
