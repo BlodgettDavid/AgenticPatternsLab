@@ -1,28 +1,22 @@
-from AgenticPatternsLab.patterns.react.pure_python.strict_react_runner import run_strict_react
+from AgenticPatternsLab.patterns.react.pure_python.react_runner import PurePythonReactRunner
 
 
-class FakeLlamaIndexLLM:
+class LlamaIndexProviderChain:
     """
-    Minimal mock LlamaIndex-style LLM.
-    It exposes `.complete(prompt: str) -> str`.
+    Wraps a LlamaIndex-style LLM that exposes .complete(prompt: str) -> str
+    into the interface expected by PurePythonReactRunner.
     """
-    def __init__(self, responses):
-        self.responses = responses
-        self.index = 0
+    def __init__(self, llm):
+        self.llm = llm
 
-    def complete(self, prompt: str) -> str:
-        if self.index < len(self.responses):
-            out = self.responses[self.index]
-            self.index += 1
-            return out
-        return "Final Answer: No more responses."
+    def generate(self, prompt: str) -> str:
+        return self.llm.complete(prompt)
 
 
-def llamaindex_react(llm):
+def llamaindex_react(llm, user_prompt: str = "What is the capital of France?"):
     """
     Thin adapter that wraps a LlamaIndex-style LLM and feeds it into the strict engine.
     """
-    def llm_wrapper(prompt: str) -> str:
-        return llm.complete(prompt)
-
-    return run_strict_react(llm_wrapper)
+    provider_chain = LlamaIndexProviderChain(llm)
+    runner = PurePythonReactRunner(provider_chain=provider_chain)
+    return runner.run(user_prompt)
