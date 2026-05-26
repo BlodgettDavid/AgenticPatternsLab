@@ -1,22 +1,49 @@
-from AgenticPatternsLab.patterns.react.pure_python.react_runner import PurePythonReactRunner
+from typing import Any
+from llama_index.core.llms import LLM
+from AgenticPatternsLab.patterns.react.pure_python.react_runner import (
+    PurePythonReactRunner,
+)
 
 
-class LlamaIndexProviderChain:
+class LlamaIndexReactRunner(PurePythonReactRunner):
     """
-    Wraps a LlamaIndex-style LLM that exposes .complete(prompt: str) -> str
-    into the interface expected by PurePythonReactRunner.
+    Thin LlamaIndex adapter for the strict ReAct engine.
+    Mirrors the LangChain adapter structure.
     """
-    def __init__(self, llm):
+
+    def __init__(self, llm: LLM, max_steps: int = 10, *args, **kwargs):
+        provider_chain = {
+            "type": "llamaindex",
+            "llm": llm,
+        }
+
+        super().__init__(provider_chain=provider_chain, *args, **kwargs)
+
         self.llm = llm
+        self.max_steps = max_steps
 
-    def generate(self, prompt: str) -> str:
-        return self.llm.complete(prompt)
+    # ------------------------------------------------------------
+    # Normalize LlamaIndex outputs
+    # ------------------------------------------------------------
+    def _extract_text(self, result: Any) -> str:
+        """
+        LlamaIndex LLMs typically return objects with a `.text` attribute.
+        """
+        if hasattr(result, "text"):
+            return result.text
 
+        if isinstance(result, dict) and "text" in result:
+            return result["text"]
 
-def llamaindex_react(llm, user_prompt: str = "What is the capital of France?"):
-    """
-    Thin adapter that wraps a LlamaIndex-style LLM and feeds it into the strict engine.
-    """
-    provider_chain = LlamaIndexProviderChain(llm)
-    runner = PurePythonReactRunner(provider_chain=provider_chain)
-    return runner.run(user_prompt)
+        return str(result)
+
+    # ------------------------------------------------------------
+    # Override only the LLM call
+    # ------------------------------------------------------------
+    def ask_llm_for_step(self, prompt: str) -> str:
+        """
+        PurePythonReactRunner calls this to get the next LLM step.
+        LlamaIndex LLMs use `.complete(prompt)`.
+        """
+        result = self.llm.complete(prompt)
+        return self._extract_text(result)

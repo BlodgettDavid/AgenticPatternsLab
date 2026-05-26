@@ -1,127 +1,148 @@
 import pytest
+from pydantic import PrivateAttr
+from llama_index.core.llms import LLM
+
 from AgenticPatternsLab.patterns.react.llama_index.llamaindex_runner import (
-    llamaindex_react,
+    LlamaIndexReactRunner,
 )
 
-class FakeLlamaIndexLLM:
+
+# ------------------------------------------------------------
+# Fake LlamaIndex LLM for strict testing
+# ------------------------------------------------------------
+class FakeLlamaIndexLLM(LLM):
+    _responses: list = PrivateAttr()
+
     def __init__(self, responses):
-        self.responses = responses
-        self.index = 0
+        super().__init__()
+        self._responses = list(responses)
 
-    def complete(self, prompt: str) -> str:
-        out = self.responses[self.index]
-        self.index += 1
-        return out
+    # ------------------------------------------------------------
+    # Required abstract methods (sync)
+    # ------------------------------------------------------------
+    def complete(self, prompt: str, **kwargs):
+        if not self._responses:
+            raise RuntimeError("FakeLlamaIndexLLM: no more responses available")
+        return type("Obj", (), {"text": self._responses.pop(0)})
 
+    def chat(self, messages, **kwargs):
+        raise NotImplementedError()
 
-def test_llamaindex_react_smoke():
+    def stream_complete(self, prompt: str, **kwargs):
+        raise NotImplementedError()
+
+    def stream_chat(self, messages, **kwargs):
+        raise NotImplementedError()
+
+    # ------------------------------------------------------------
+    # Required abstract methods (async)
+    # ------------------------------------------------------------
+    async def acomplete(self, prompt: str, **kwargs):
+        raise NotImplementedError()
+
+    async def achat(self, messages, **kwargs):
+        raise NotImplementedError()
+
+    async def astream_complete(self, prompt: str, **kwargs):
+        raise NotImplementedError()
+
+    async def astream_chat(self, messages, **kwargs):
+        raise NotImplementedError()
+
+    # ------------------------------------------------------------
+    # Metadata
+    # ------------------------------------------------------------
+    @property
+    def metadata(self):
+        return {}
+
+# ------------------------------------------------------------
+# Tests
+# ------------------------------------------------------------
+
+def test_final_answer_single_step():
     llm = FakeLlamaIndexLLM(
         responses=[
-            # Step 1: valid Thought + Action
-            "Thought: I should look this up.\nAction: search('France capital')",
-
-            # Step 2: valid Thought + Final Answer
-            "Thought: I now know the answer.\nFinal Answer: Paris"
+            "Thought: I know this.\nFinal Answer: Paris"
         ]
     )
+    runner = LlamaIndexReactRunner(llm)
+    assert runner.run("What is the capital of France?") == "Paris"
 
-    result = llamaindex_react(llm)
-    assert result == "Paris"
 
-
-def test_llamaindex_react_multistep():
+def test_multistep_final_answer():
     llm = FakeLlamaIndexLLM(
         responses=[
-            # Step 1: Thought + Action
-            "Thought: I should search for the capital.\nAction: search('France capital')",
-
-            # Step 2: Thought + Action (second step)
-            "Thought: Let me double check.\nAction: search('Paris population')",
-
-            # Step 3: Thought + Final Answer
-            "Thought: I now know the answer.\nFinal Answer: Paris"
+            "Thought: Let me search.\nAction: search('France capital')",
+            "Thought: I know it now.\nFinal Answer: Paris",
         ]
     )
+    runner = LlamaIndexReactRunner(llm)
+    assert runner.run("What is the capital of France?") == "Paris"
 
-    result = llamaindex_react(llm)
-    assert result == "Paris"
 
-
-def test_llamaindex_malformed_action():
+def test_malformed_action_raises():
     llm = FakeLlamaIndexLLM(
         responses=[
-            # Step 1: Thought + malformed Action (missing quotes)
-            "Thought: I should look this up.\nAction: search(France capital)"
+            "Thought: Let me search.\nAction: search(France capital)"
         ]
     )
-
+    runner = LlamaIndexReactRunner(llm)
     with pytest.raises(ValueError):
-        llamaindex_react(llm)
+        runner.run("test")
 
 
-def test_llamaindex_missing_thought():
+def test_missing_thought_raises():
     llm = FakeLlamaIndexLLM(
         responses=[
-            # INVALID: starts with Action instead of Thought
             "Action: search('France capital')"
         ]
     )
-
+    runner = LlamaIndexReactRunner(llm)
     with pytest.raises(ValueError):
-        llamaindex_react(llm)
+        runner.run("test")
 
 
-def test_llamaindex_unknown_tool():
+def test_unknown_tool_raises():
     llm = FakeLlamaIndexLLM(
         responses=[
-            # INVALID: "write" is not a supported tool
-            "Thought: I should write something.\nAction: write('hello')"
+            "Thought: Let me write.\nAction: write('hello')"
         ]
     )
-
+    runner = LlamaIndexReactRunner(llm)
     with pytest.raises(ValueError):
-        llamaindex_react(llm)
+        runner.run("test")
 
-def test_llamaindex_runner_multistep():
+
+def test_runner_multistep():
     llm = FakeLlamaIndexLLM(
         responses=[
-            # Step 1
             "Thought: Step one.\nAction: search('A')",
-
-            # Step 2
             "Thought: Step two.\nAction: search('B')",
-
-            # Step 3
-            "Thought: Done.\nFinal Answer: Success"
+            "Thought: Done.\nFinal Answer: Success",
         ]
     )
+    runner = LlamaIndexReactRunner(llm)
+    assert runner.run("test") == "Success"
 
-    result = llamaindex_react(llm)
-    assert result == "Success"
 
-
-def test_llamaindex_strict_engine_integration():
+def test_strict_engine_integration():
     llm = FakeLlamaIndexLLM(
         responses=[
-            # Step 1: valid Thought + Action
             "Thought: Let me search.\nAction: search('France capital')",
-
-            # Step 2: strict engine should send Observation, LLM responds with final answer
-            "Thought: I now know it.\nFinal Answer: Paris"
+            "Thought: I now know it.\nFinal Answer: Paris",
         ]
     )
+    runner = LlamaIndexReactRunner(llm)
+    assert runner.run("test") == "Paris"
 
-    result = llamaindex_react(llm)
-    assert result == "Paris"
 
-
-def test_llamaindex_error_handling():
+def test_error_handling():
     llm = FakeLlamaIndexLLM(
         responses=[
-            # INVALID: Thought but no Action or Final Answer
             "Thought: I am thinking but doing nothing."
         ]
     )
-
+    runner = LlamaIndexReactRunner(llm)
     with pytest.raises(ValueError):
-        llamaindex_react(llm)
+        runner.run("test")
