@@ -23,6 +23,10 @@ from typing import List, Optional, Dict, Any, Callable
 import uuid
 import time
 
+import re
+ACTION_RE = re.compile(
+    r"^Action:\s*([a-zA-Z_][a-zA-Z0-9_]*)\('([^'\n]+)'\)$"
+)
 
 # ------------------------------------------------------------
 # State Models
@@ -195,3 +199,150 @@ class ReactEngine:
     # ------------------------------------------------------------
     def is_finished(self, state: EngineState) -> bool:
         return state.finished or len(state.steps) >= state.max_steps
+
+
+# ------------------------------------------------------------
+# Strict Shared ReAct Engine (new)
+# ------------------------------------------------------------
+
+class StrictReactEngine:
+    """
+    Framework-agnostic strict ReAct engine.
+    This class will replace the older ReactEngine above.
+    """
+
+    def __init__(self, tool_registry, max_steps=10):
+        self.tool_registry = tool_registry
+        self.max_steps = max_steps
+        self.steps = 0
+        self.history = []
+
+    # -----------------------------
+    # Parsing (to be filled in)
+    # -----------------------------
+    def parse_llm_output(self, llm_output: str) -> dict:
+        parsed = {
+            "thought": None,
+            "action": None,
+            "final_answer": None,
+        }
+
+        lines = [line.rstrip() for line in llm_output.splitlines() if line.strip()]
+        if not lines:
+            raise ValueError("Empty LLM output.")
+
+        # First line must be Thought
+        if not lines[0].startswith("Thought:"):
+            raise ValueError("LLM output must begin with 'Thought:'.")
+
+        state = "thought"
+
+        for line in lines:
+            # -------------------------
+            # Thought
+            # -------------------------
+            if line.startswith("Thought:"):
+                if state != "thought":
+                    raise ValueError("Thought may only appear once at the beginning.")
+                if parsed["thought"] is not None:
+                    raise ValueError("Multiple Thought lines are not allowed.")
+                parsed["thought"] = line[len("Thought:"):].strip()
+                state = "action_or_final"
+                continue
+
+            # -------------------------
+            # Action
+            # -------------------------
+            if line.startswith("Action:"):
+                if state != "action_or_final":
+                    raise ValueError("Action in invalid position.")
+                if parsed["action"] is not None:
+                    raise ValueError("Multiple Actions are not allowed.")
+                if parsed["final_answer"] is not None:
+                    raise ValueError("Cannot have Action after Final Answer.")
+
+                # Use strict regex
+                match = ACTION_RE.match(line)
+                if not match:
+                    raise ValueError(f"Malformed action: {line}")
+
+                tool_name = match.group(1)
+                argument = match.group(2)
+                parsed["action"] = f"{tool_name}('{argument}')"
+                state = "done"
+                continue
+
+            # -------------------------
+            # Final Answer
+            # -------------------------
+            if line.startswith("Final Answer:"):
+                if state != "action_or_final":
+                    raise ValueError("Final Answer in invalid position.")
+                if parsed["final_answer"] is not None:
+                    raise ValueError("Multiple Final Answer lines are not allowed.")
+                if parsed["action"] is not None:
+                    raise ValueError("Cannot have both Action and Final Answer.")
+
+                parsed["final_answer"] = line[len("Final Answer:"):].strip()
+                state = "done"
+                continue
+
+            # -------------------------
+            # Anything else is illegal
+            # -------------------------
+            raise ValueError(f"Unexpected content in LLM output: {line}")
+
+        # Final sanity check
+        if parsed["action"] is None and parsed["final_answer"] is None:
+            raise ValueError("LLM output contained no action and no final answer.")
+
+        return parsed
+
+
+    # -----------------------------
+    # Tool execution (to be filled in)
+    # -----------------------------
+    def execute_action(self, action: str) -> str:
+        # Reconstruct full Action: ... line for regex matching
+        match = ACTION_RE.match(f"Action: {action}")
+        if not match:
+            raise ValueError(f"Malformed action: {action}")
+
+        tool = match.group(1)
+        query = match.group(2)
+
+        if tool not in self.tool_registry:
+            raise ValueError(f"Unknown tool: {tool}")
+
+        return self.tool_registry[tool](query)
+
+    # -----------------------------
+    # Loop control (to be filled in)
+    # -----------------------------
+    def is_done(self, parsed: dict) -> bool:
+        return parsed.get("final_answer") is not None
+
+    # -----------------------------
+    # Main loop (to be filled in)
+    # -----------------------------
+    def run(self, initial_prompt: str, ask_llm) -> str:
+        prompt = initial_prompt
+
+        while self.steps < self.max_steps:
+            self.steps += 1
+
+            llm_output = ask_llm(prompt)
+            parsed = self.parse_llm_output(llm_output)
+
+            self.history.append(parsed)
+
+            if self.is_done(parsed):
+                return parsed["final_answer"]
+
+            if parsed.get("action"):
+                observation = self.execute_action(parsed["action"])
+                prompt = f"Observation: {observation}"
+            else:
+                raise RuntimeError("LLM output contained no action and no final answer.")
+
+        raise RuntimeError("Max steps reached without producing a final answer.")

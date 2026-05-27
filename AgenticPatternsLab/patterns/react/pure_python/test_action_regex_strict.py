@@ -1,6 +1,5 @@
 import pytest
-from AgenticPatternsLab.patterns.react.pure_python.react_runner import ACTION_RE
-
+from AgenticPatternsLab.patterns.react.shared.react_engine import ACTION_RE
 
 # -----------------------------
 # VALID ACTIONS (should match)
