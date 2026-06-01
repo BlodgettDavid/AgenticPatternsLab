@@ -211,8 +211,9 @@ class StrictReactEngine:
     This class will replace the older ReactEngine above.
     """
 
-    def __init__(self, tool_registry, max_steps=10):
-        self.tool_registry = tool_registry
+    def __init__(self, llm_callback, tool_callback, max_steps=10):
+        self.llm_callback = llm_callback
+        self.tool_callback = tool_callback
         self.max_steps = max_steps
         self.steps = 0
         self.history = []
@@ -311,10 +312,7 @@ class StrictReactEngine:
         tool = match.group(1)
         query = match.group(2)
 
-        if tool not in self.tool_registry:
-            raise ValueError(f"Unknown tool: {tool}")
-
-        return self.tool_registry[tool](query)
+        return self.tool_callback(tool, query)
 
     # -----------------------------
     # Loop control (to be filled in)
@@ -325,13 +323,14 @@ class StrictReactEngine:
     # -----------------------------
     # Main loop (to be filled in)
     # -----------------------------
-    def run(self, initial_prompt: str, ask_llm) -> str:
+    def run(self, initial_prompt: str) -> str:
+
         prompt = initial_prompt
 
         while self.steps < self.max_steps:
             self.steps += 1
 
-            llm_output = ask_llm(prompt)
+            llm_output = self.llm_callback(prompt)
             parsed = self.parse_llm_output(llm_output)
 
             self.history.append(parsed)
