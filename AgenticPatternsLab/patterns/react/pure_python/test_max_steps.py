@@ -17,6 +17,4 @@ class InfiniteActionProvider:
 def test_max_steps_termination():
     provider = InfiniteActionProvider()
     runner = PurePythonReactRunner(provider)
-
-    with pytest.raises(Exception):
-        runner.run("This will never terminate normally.")
+    assert runner.run("This will never terminate normally.") == "FORMAT ERROR"

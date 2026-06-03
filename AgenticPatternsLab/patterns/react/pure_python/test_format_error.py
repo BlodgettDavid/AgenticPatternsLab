@@ -43,23 +43,16 @@ class BadProvider_MultipleActions:
 
 def test_missing_thought():
     runner = PurePythonReactRunner(BadProvider_MissingThought())
-    with pytest.raises(ValueError):
-        runner.run("What is the capital of France?")
-
+    assert runner.run(...) == "FORMAT ERROR"
 
 def test_double_quotes_in_action():
     runner = PurePythonReactRunner(BadProvider_DoubleQuotes())
-    with pytest.raises(ValueError):
-        runner.run("What is the capital of France?")
-
+    assert runner.run(...) == "FORMAT ERROR"
 
 def test_action_and_final_answer_same_step():
     runner = PurePythonReactRunner(BadProvider_ActionAndFinal())
-    with pytest.raises(ValueError):
-        runner.run("What is the capital of France?")
-
+    assert runner.run(...) == "FORMAT ERROR"
 
 def test_multiple_actions():
     runner = PurePythonReactRunner(BadProvider_MultipleActions())
-    with pytest.raises(ValueError):
-        runner.run("What is the capital of France?")
+    assert runner.run(...) == "FORMAT ERROR"

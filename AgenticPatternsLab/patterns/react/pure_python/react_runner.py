@@ -36,8 +36,10 @@ class PurePythonReactRunner:
     def __init__(self, provider_chain, max_steps=10):
         self.provider_chain = provider_chain
         self.max_steps = max_steps
+
         self.engine = StrictReactEngine(
-            tool_registry={"search": simulate_search_tool},
+            llm_callback=self.ask_llm_for_step,
+            tool_callback=lambda tool, query: simulate_search_tool(query),
             max_steps=self.max_steps
         )
 
@@ -49,4 +51,4 @@ class PurePythonReactRunner:
 
     def run(self, user_prompt: str) -> str:
         initial_prompt = self.build_initial_prompt(user_prompt)
-        return self.engine.run(initial_prompt, self.ask_llm_for_step)
+        return self.engine.run(initial_prompt)

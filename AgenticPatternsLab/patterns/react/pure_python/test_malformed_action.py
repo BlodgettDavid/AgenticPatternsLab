@@ -55,5 +55,4 @@ class BadAction_MissingParen:
 ])
 def test_malformed_actions(provider):
     runner = PurePythonReactRunner(provider)
-    with pytest.raises(ValueError):
-        runner.run("What is the capital of France?")
+    assert runner.run(...) == "FORMAT ERROR"

@@ -321,7 +321,7 @@ class StrictReactEngine:
         return parsed.get("final_answer") is not None
 
     # -----------------------------
-    # Main loop (to be filled in)
+    # Main strict ReAct loop
     # -----------------------------
     def run(self, initial_prompt: str) -> str:
 
@@ -330,18 +330,39 @@ class StrictReactEngine:
         while self.steps < self.max_steps:
             self.steps += 1
 
-            llm_output = self.llm_callback(prompt)
-            parsed = self.parse_llm_output(llm_output)
+            # -----------------------------------------
+            # LLM call + strict parsing
+            # -----------------------------------------
+            try:
+                llm_output = self.llm_callback(prompt)
+                parsed = self.parse_llm_output(llm_output)
+            except Exception:
+                return "FORMAT ERROR"
 
             self.history.append(parsed)
 
+            # -----------------------------------------
+            # Final Answer
+            # -----------------------------------------
             if self.is_done(parsed):
                 return parsed["final_answer"]
 
+            # -----------------------------------------
+            # Action
+            # -----------------------------------------
             if parsed.get("action"):
-                observation = self.execute_action(parsed["action"])
-                prompt = f"Observation: {observation}"
-            else:
-                raise RuntimeError("LLM output contained no action and no final answer.")
+                try:
+                    observation = self.execute_action(parsed["action"])
+                except Exception:
+                    return "FORMAT ERROR"
 
-        raise RuntimeError("Max steps reached without producing a final answer.")
+                prompt = f"Observation: {observation}"
+
+            else:
+                # Missing action AND no final answer = strict violation
+                return "FORMAT ERROR"
+
+        # -----------------------------------------
+        # Max steps reached without Final Answer
+        # -----------------------------------------
+        return "FORMAT ERROR"

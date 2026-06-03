@@ -13,6 +13,4 @@ class MissingThoughtProvider:
 def test_missing_thought():
     provider = MissingThoughtProvider()
     runner = PurePythonReactRunner(provider)
-
-    with pytest.raises(ValueError):
-        runner.run("What is the capital of France?")
+    assert runner.run("What is the capital of France?") == "FORMAT ERROR"
