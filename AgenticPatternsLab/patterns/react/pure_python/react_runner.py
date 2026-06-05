@@ -1,28 +1,7 @@
 from AgenticPatternsLab.utils.logging import create_logger, log_event
 from .prompting import build_react_prompt
-
-# ------------------------------------------------------------
-# Tool Simulation (kept exactly as-is)
-# ------------------------------------------------------------
-def simulate_search_tool(query: str) -> str:
-    query = query.lower()
-
-    if "author of dune" in query:
-        return "Frank Herbert wrote Dune."
-
-    if "capital of france" in query or "france capital" in query:
-        return "Paris."
-
-    if "population of seattle" in query:
-        return "Seattle has a population of about 750,000."
-
-    return "No relevant information found."
-
-
-# ------------------------------------------------------------
-# NEW: Import the shared strict engine
-# ------------------------------------------------------------
 from AgenticPatternsLab.patterns.react.shared.react_engine import StrictReactEngine
+from AgenticPatternsLab.patterns.react.shared.tool_registry import ToolRegistry
 
 
 # ------------------------------------------------------------
@@ -37,9 +16,11 @@ class PurePythonReactRunner:
         self.provider_chain = provider_chain
         self.max_steps = max_steps
 
+        self.registry = ToolRegistry()
+
         self.engine = StrictReactEngine(
             llm_callback=self.ask_llm_for_step,
-            tool_callback=lambda tool, query: simulate_search_tool(query),
+            tool_callback=lambda tool, query: self.registry.call(tool, query),
             max_steps=self.max_steps
         )
 
