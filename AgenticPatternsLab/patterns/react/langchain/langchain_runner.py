@@ -1,6 +1,8 @@
 from .langchain_adapter import LangChainLLMAdapter
 from AgenticPatternsLab.patterns.react.shared.react_engine import StrictReactEngine
 from AgenticPatternsLab.patterns.react.shared.tool_registry import ToolRegistry
+from AgenticPatternsLab.patterns.react.shared.prompt_builder import build_react_prompt
+
 
 
 def langchain_react(prompt: str, llm=None) -> str:
@@ -22,4 +24,5 @@ def langchain_react(prompt: str, llm=None) -> str:
     )
 
     # 4) Run the loop
-    return engine.run(prompt)
+    initial_prompt = build_react_prompt(prompt)
+    return engine.run(initial_prompt)

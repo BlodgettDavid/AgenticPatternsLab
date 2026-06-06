@@ -1,5 +1,5 @@
 from AgenticPatternsLab.utils.logging import create_logger, log_event
-from .prompting import build_react_prompt
+from AgenticPatternsLab.patterns.react.shared.prompt_builder import build_react_prompt
 from AgenticPatternsLab.patterns.react.shared.react_engine import StrictReactEngine
 from AgenticPatternsLab.patterns.react.shared.tool_registry import ToolRegistry
 
