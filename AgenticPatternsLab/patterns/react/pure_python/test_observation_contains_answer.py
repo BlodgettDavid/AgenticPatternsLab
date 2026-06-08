@@ -1,5 +1,5 @@
-import pytest
 from AgenticPatternsLab.patterns.react.pure_python.react_runner import PurePythonReactRunner
+from AgenticPatternsLab.providers.provider_manager import provider_manager
 
 
 class ObservationContainsAnswerProvider:
@@ -26,11 +26,10 @@ class ObservationContainsAnswerProvider:
             "Final Answer: Paris."
         )
 
-
 def test_observation_contains_answer():
     provider = ObservationContainsAnswerProvider()
-    runner = PurePythonReactRunner(provider)
-
+    provider_manager.set_providers([provider])
+    runner = PurePythonReactRunner()
     result = runner.run("What is the capital of France?")
 
     # Assert final answer is correct

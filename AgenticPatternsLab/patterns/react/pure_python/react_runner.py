@@ -2,6 +2,7 @@ from AgenticPatternsLab.utils.logging import create_logger, log_event
 from AgenticPatternsLab.patterns.react.shared.prompt_builder import build_react_prompt
 from AgenticPatternsLab.patterns.react.shared.react_engine import StrictReactEngine
 from AgenticPatternsLab.patterns.react.shared.tool_registry import ToolRegistry
+from AgenticPatternsLab.providers.provider_manager import provider_manager
 
 
 # ------------------------------------------------------------
@@ -12,8 +13,7 @@ class PurePythonReactRunner:
     Thin adapter that delegates all strict ReAct logic to StrictReactEngine.
     """
 
-    def __init__(self, provider_chain, max_steps=10):
-        self.provider_chain = provider_chain
+    def __init__(self, max_steps=10):
         self.max_steps = max_steps
 
         self.registry = ToolRegistry()
@@ -28,7 +28,7 @@ class PurePythonReactRunner:
         return build_react_prompt(user_prompt)
 
     def ask_llm_for_step(self, prompt: str) -> str:
-        return self.provider_chain.generate(prompt)
+        return provider_manager.generate(prompt)
 
     def run(self, user_prompt: str) -> str:
         initial_prompt = self.build_initial_prompt(user_prompt)

@@ -23,6 +23,12 @@ class ToolRegistry:
             "calculator": calculator_tool,
         }
 
+    def register(self, name: str, func: Callable[[str], str]) -> None:
+        """
+        Register or override a tool by name.
+        """
+        self.tools[name] = func
+
     def get(self, name: str) -> Callable[[str], str]:
         """
         Return the tool function for the given name.

@@ -1,5 +1,5 @@
-import pytest
 from AgenticPatternsLab.patterns.react.pure_python.react_runner import PurePythonReactRunner
+from AgenticPatternsLab.providers.provider_manager import provider_manager
 
 
 class InfiniteActionProvider:
@@ -13,8 +13,8 @@ class InfiniteActionProvider:
             "Action: search('loop forever')"
         )
 
-
 def test_max_steps_termination():
     provider = InfiniteActionProvider()
-    runner = PurePythonReactRunner(provider)
-    assert runner.run("This will never terminate normally.") == "FORMAT ERROR"
+    provider_manager.set_providers([provider])
+    runner = PurePythonReactRunner()
+    assert runner.run(...) == "FORMAT ERROR"

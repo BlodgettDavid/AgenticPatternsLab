@@ -53,6 +53,14 @@ class ProviderManager:
 
         raise RuntimeError(f"All providers failed. Last error: {last_error}") from last_error
 
+    def set_providers(self, providers):
+        seen = set()
+        unique = []
+        for p in providers:
+            if type(p) not in seen:
+                unique.append(p)
+                seen.add(type(p))
+        self.providers = unique
 
 # ---------------------------------------------------------------------------
 # Intended provider chain (future-ready documentation)
@@ -62,19 +70,3 @@ from AgenticPatternsLab.providers.mock_provider import MockLLM
 provider_manager = ProviderManager([
     MockLLM(),
 ])
-
-
-# ---------------------------------------------------------------------------
-# Intended provider chain (future-ready documentation)
-#
-# This shows the full architecture, including providers not yet implemented.
-#
-# providers = [
-#     GeminiLLM(),
-#     OpenAILLM(),        # not implemented yet
-#     AzureOpenAILLM(),   # not implemented yet
-#     OllamaLLM(),
-#     MockLLM()
-# ]
-#
-# ---------------------------------------------------------------------------

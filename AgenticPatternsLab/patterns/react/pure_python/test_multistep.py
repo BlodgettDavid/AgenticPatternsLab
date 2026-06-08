@@ -1,5 +1,5 @@
-import pytest
 from AgenticPatternsLab.patterns.react.pure_python.react_runner import PurePythonReactRunner
+from AgenticPatternsLab.providers.provider_manager import provider_manager
 
 
 class MultiStepProvider:
@@ -38,7 +38,8 @@ class MultiStepProvider:
 
 def test_multistep_react():
     provider = MultiStepProvider()
-    runner = PurePythonReactRunner(provider)
+    provider_manager.set_providers([provider])
+    runner = PurePythonReactRunner()
 
     result = runner.run("Who wrote Dune and when was it published?")
 

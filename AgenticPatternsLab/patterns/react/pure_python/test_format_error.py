@@ -1,11 +1,12 @@
 import pytest
 from AgenticPatternsLab.patterns.react.pure_python.react_runner import PurePythonReactRunner
+from AgenticPatternsLab.providers.provider_manager import provider_manager
+from AgenticPatternsLab.providers.mock_provider import MockLLM
 
 
 # -----------------------------
 # Providers that violate format
 # -----------------------------
-
 class BadProvider_MissingThought:
     def generate(self, prompt: str) -> str:
         return "Action: search('capital of France')"
@@ -36,23 +37,33 @@ class BadProvider_MultipleActions:
             "Action: search('population of Seattle')"
         )
 
+@pytest.fixture(autouse=True)
+def reset_provider_manager():
+    provider_manager.set_providers([MockLLM()])
 
 # -----------------------------
 # Tests
 # -----------------------------
-
 def test_missing_thought():
-    runner = PurePythonReactRunner(BadProvider_MissingThought())
+    provider = BadProvider_MissingThought()
+    provider_manager.set_providers([provider])
+    runner = PurePythonReactRunner()
     assert runner.run(...) == "FORMAT ERROR"
 
 def test_double_quotes_in_action():
-    runner = PurePythonReactRunner(BadProvider_DoubleQuotes())
+    provider = BadProvider_DoubleQuotes()
+    provider_manager.set_providers([provider])
+    runner = PurePythonReactRunner()
     assert runner.run(...) == "FORMAT ERROR"
 
 def test_action_and_final_answer_same_step():
-    runner = PurePythonReactRunner(BadProvider_ActionAndFinal())
+    provider = BadProvider_ActionAndFinal()
+    provider_manager.set_providers([provider])
+    runner = PurePythonReactRunner()
     assert runner.run(...) == "FORMAT ERROR"
 
 def test_multiple_actions():
-    runner = PurePythonReactRunner(BadProvider_MultipleActions())
+    provider = BadProvider_MultipleActions()
+    provider_manager.set_providers([provider])
+    runner = PurePythonReactRunner()
     assert runner.run(...) == "FORMAT ERROR"
