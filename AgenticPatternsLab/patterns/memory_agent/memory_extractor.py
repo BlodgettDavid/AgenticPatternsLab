@@ -105,22 +105,40 @@ class MemoryExtractor:
             return message.strip()
 
         return None
+            
 
-    def _extract_tool_events(self, trace: Dict) -> List[str]:
+    def _extract_tool_events(self, trace) -> List[str]:
+
+
         """
-        Extract tool usage events from the reasoning trace.
-        Iteration 1: look for 'action' entries in trace.
+        Extract tool usage events from the Iteration 3 trace format.
+        StrictReactEngine produces a list of dicts, each containing:
+            - thought: str | None
+            - action: str | None   (e.g., "search_memory('France')")
+            - final_answer: str | None
         """
         events = []
 
         if not trace:
             return events
 
-        steps = trace.get("steps", [])
-        for step in steps:
-            action = step.get("action")
-            if action and action.get("type") == "tool":
-                tool_name = action.get("tool")
-                events.append(f"Used tool: {tool_name}")
+        # Iteration 3: trace is a list of parsed steps
+        if isinstance(trace, list):
+            for step in trace:
+                action = step.get("action")
+                if action:
+                    # action looks like: "search_memory('France')"
+                    tool_name = action.split("(")[0]
+                    events.append(f"Used tool: {tool_name}")
+            return events
+
+        # Fallback for older formats (Iteration 1)
+        if isinstance(trace, dict):
+            steps = trace.get("steps", [])
+            for step in steps:
+                action = step.get("action")
+                if action and action.get("type") == "tool":
+                    tool_name = action.get("tool")
+                    events.append(f"Used tool: {tool_name}")
 
         return events

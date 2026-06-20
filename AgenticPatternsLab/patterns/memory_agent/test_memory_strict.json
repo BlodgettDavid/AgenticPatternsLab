@@ -1,0 +1,32 @@
+[
+  {
+    "id": "703f1b14-0a45-47a4-aa09-9ce702291611",
+    "type": "agent_written",
+    "content": "Paris is the capital of France",
+    "metadata": {}
+  },
+  {
+    "id": "",
+    "type": "semantic",
+    "content": "The capital of France is Paris.",
+    "metadata": {
+      "source": "final_answer"
+    }
+  },
+  {
+    "id": "",
+    "type": "episodic",
+    "content": "Used tool: search_memory",
+    "metadata": {
+      "source": "trace"
+    }
+  },
+  {
+    "id": "",
+    "type": "episodic",
+    "content": "Used tool: write_memory",
+    "metadata": {
+      "source": "trace"
+    }
+  }
+]

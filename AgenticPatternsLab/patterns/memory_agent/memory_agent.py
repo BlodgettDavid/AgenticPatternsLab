@@ -1,11 +1,14 @@
 # patterns/memory_agent/memory_agent.py
-
 from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any, List
 
 from .memory_store import MemoryStore, MemoryItem
 from .memory_extractor import MemoryExtractor
+
+import uuid
+
+
 
 
 @dataclass
@@ -42,7 +45,10 @@ class MemoryAgent:
         )
 
         # 3) Call runner
-        result = self.runner.run(enriched_prompt)
+        result = self.runner.run(
+            enriched_prompt,
+            tools=self.get_tools()
+        )
 
         final_answer = result.final_answer
         trace = result.trace
@@ -74,6 +80,7 @@ class MemoryAgent:
         memory_block = "\n".join(f"- {m.content}" for m in memories)
 
         return f"""
+
 You are a strict ReAct agent.
 
 Relevant prior context:
@@ -82,3 +89,29 @@ Relevant prior context:
 User message:
 {user_message}
 """.strip()
+    
+
+    # ---------------------------------------------------------
+    # Tools exposed to StrictReactEngine
+    # ---------------------------------------------------------
+    def get_tools(self):
+        return {
+            "search_memory": self._tool_search_memory,
+            "write_memory": self._tool_write_memory,
+        }
+
+    def _tool_search_memory(self, query: str) -> str:
+        items = self.memory_store.get_relevant(query)
+        if not items:
+            return "No relevant memory found"
+        return "; ".join(item.content for item in items)
+
+    def _tool_write_memory(self, content: str) -> str:
+        item = MemoryItem(
+            id=str(uuid.uuid4()),
+            type="agent_written",
+            content=content,
+            metadata={}
+        )
+        self.memory_store.add([item])
+        return "Memory stored"
