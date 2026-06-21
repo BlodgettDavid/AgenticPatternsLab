@@ -5,6 +5,7 @@ from typing import Any, List
 
 from .memory_store import MemoryStore, MemoryItem
 from .memory_extractor import MemoryExtractor
+from .tools.search_tool import SearchTool
 
 import uuid
 
@@ -98,6 +99,7 @@ User message:
         return {
             "search_memory": self._tool_search_memory,
             "write_memory": self._tool_write_memory,
+            "search": SearchTool().run,
         }
 
     def _tool_search_memory(self, query: str) -> str:
