@@ -6,12 +6,10 @@ from typing import Any, List
 from .memory_store import MemoryStore, MemoryItem
 from .memory_extractor import MemoryExtractor
 from .tools.search_tool import SearchTool
-
 from .tools.calculator_tool import CalculatorTool
+from .tools.file_tools import FileTools
 
 import uuid
-
-
 
 
 @dataclass
@@ -103,9 +101,13 @@ User message:
             "write_memory": self._tool_write_memory,
             "search": SearchTool().run,
             "calculate": CalculatorTool().run,
+            "file_read": FileTools().read,
+            "file_write": FileTools().write,
+            "file_append": FileTools().append,
+            "file_delete": FileTools().delete,
         }
-    
-    
+
+
     def _tool_search_memory(self, query: str) -> str:
         items = self.memory_store.get_relevant(query)
         if not items:
