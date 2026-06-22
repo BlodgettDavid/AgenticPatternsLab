@@ -9,6 +9,9 @@ from .tools.search_tool import SearchTool
 from .tools.calculator_tool import CalculatorTool
 from .tools.file_tools import FileTools
 from .tools.web_fetch_tool import WebFetchTool
+from patterns.memory_agent.tools.code_execution_tool import CodeExecutionTool
+
+
 
 import uuid
 
@@ -108,8 +111,9 @@ User message:
             "file_append": FileTools().append,
             "file_delete": FileTools().delete,
             "web_fetch": WebFetchTool().run,
+            "code_exec": CodeExecutionTool().run,
         }
-
+  
     def _tool_search_memory(self, query: str) -> str:
         items = self.memory_store.get_relevant(query)
         if not items:
