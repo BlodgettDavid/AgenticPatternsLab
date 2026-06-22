@@ -7,6 +7,8 @@ from .memory_store import MemoryStore, MemoryItem
 from .memory_extractor import MemoryExtractor
 from .tools.search_tool import SearchTool
 
+from .tools.calculator_tool import CalculatorTool
+
 import uuid
 
 
@@ -100,8 +102,10 @@ User message:
             "search_memory": self._tool_search_memory,
             "write_memory": self._tool_write_memory,
             "search": SearchTool().run,
+            "calculate": CalculatorTool().run,
         }
-
+    
+    
     def _tool_search_memory(self, query: str) -> str:
         items = self.memory_store.get_relevant(query)
         if not items:
