@@ -8,8 +8,10 @@ from .memory_extractor import MemoryExtractor
 from .tools.search_tool import SearchTool
 from .tools.calculator_tool import CalculatorTool
 from .tools.file_tools import FileTools
+from .tools.web_fetch_tool import WebFetchTool
 
 import uuid
+
 
 
 @dataclass
@@ -105,8 +107,8 @@ User message:
             "file_write": FileTools().write,
             "file_append": FileTools().append,
             "file_delete": FileTools().delete,
+            "web_fetch": WebFetchTool().run,
         }
-
 
     def _tool_search_memory(self, query: str) -> str:
         items = self.memory_store.get_relevant(query)
