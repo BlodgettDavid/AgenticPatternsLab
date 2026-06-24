@@ -1,5 +1,6 @@
 import time
 import ollama
+from typing import Any
 
 class OllamaLLM:
     def __init__(self, model_name: str = "llama3.2"):
@@ -31,3 +32,16 @@ class OllamaLLM:
                     continue
 
                 raise RuntimeError(f"Ollama provider error: {e}")
+            
+    def run(self, prompt: str, tools: dict = None) -> Any:
+        """
+        Compatibility bridge matching the Agent framework execution contract.
+        """
+        raw_text = self.generate(prompt)
+        
+        class ProviderResponse:
+            def __init__(self, text: str):
+                self.final_answer = text
+                self.trace = {}
+                
+        return ProviderResponse(raw_text)

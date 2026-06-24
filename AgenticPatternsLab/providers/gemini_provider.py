@@ -11,6 +11,7 @@ import time
 import os
 from google import genai
 from google.genai.types import GenerateContentConfig
+from typing import Any
 
 
 class GeminiLLM:
@@ -62,3 +63,16 @@ class GeminiLLM:
                     continue
 
                 raise RuntimeError(f"Gemini provider error: {e}")
+            
+    def run(self, prompt: str, tools: dict = None) -> Any:
+        """
+        Compatibility bridge matching the Agent framework execution contract.
+        """
+        raw_text = self.generate(prompt)
+        
+        class ProviderResponse:
+            def __init__(self, text: str):
+                self.final_answer = text
+                self.trace = {}
+                
+        return ProviderResponse(raw_text)

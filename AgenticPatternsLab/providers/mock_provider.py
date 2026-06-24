@@ -1,39 +1,59 @@
 """
-Deterministic Mock Provider for the Agentic Patterns Lab.
+Deterministic Unified Mock Provider for the Agentic Patterns Lab.
 
-This provider returns predictable, canned responses for testing
-the ReAct loop, fallback behavior, and orchestrator correctness.
+Consolidates simple text generation, multi-step execution tracing,
+and interactive tool-calling evaluation into a single provider.
 """
 
-"""
-Deterministic Mock Provider for the Agentic Patterns Lab.
-"""
-
-import time
+from typing import Any
 
 
 class MockLLM:
     def __init__(self):
         self.name = "mock"
-        self.max_retries = 2
-        self.initial_backoff = 0.5
-        self.backoff_factor = 2
 
     def generate(self, prompt: str) -> str:
-        backoff = self.initial_backoff
+        """
+        Evaluates prompt keywords to simulate different execution behaviors 
+        for ReAct loops, planning, and tool evaluation.
+        """
+        # --- 1. Handle Multi-Step ReAct Scenarios (from mock_provider_multistep) ---
+        if "france capital" in prompt.lower() or "paris population" in prompt.lower():
+            # First turn: No observation injected yet -> return search action
+            if "Observation:" not in prompt:
+                return (
+                    "Thought: I should break this down.\n"
+                    "Action: search(\"France capital\")"
+                )
 
-        for attempt in range(self.max_retries + 1):
-            try:
-                return "mock response"
-            except Exception:
-                time.sleep(backoff)
-                backoff *= self.backoff_factor
+            # Second turn: One observation returned -> request next tool action
+            if prompt.count("Observation:") == 1:
+                return (
+                    "Thought: Now I need the population.\n"
+                    "Action: search(\"Paris population\")"
+                )
 
-        return "mock response"
+            # Final turn: Observations satisfied -> return final text synthesis
+            return (
+                "Thought: I can now answer.\n"
+                "FinalAnswer: Paris is the capital of France and has a population of about 2M."
+            )
 
-
-    def generate(self, prompt: str) -> str:
+        # --- 2. Default Fallback Scenario (Your clean baseline from earlier) ---
         return (
             "Thought: I already know the answer.\n"
             "FinalAnswer: Hello from MockLLM!"
         )
+    
+    def run(self, prompt: str, tools: dict = None) -> Any:
+        """
+        Compatibility bridge matching the Agent framework execution contract.
+        """
+        raw_text = self.generate(prompt)
+
+        class ProviderResponse:
+            def __init__(self, text: str):
+                self.final_answer = text
+                self.trace = {}
+
+        return ProviderResponse(raw_text)

@@ -5,7 +5,7 @@ Coordinates multiple LLM providers and implements a clean fallback chain.
 Each provider is tried in order until one succeeds.
 """
 
-from typing import List
+from typing import List, Any
 
 
 class ProviderManager:
@@ -53,6 +53,22 @@ class ProviderManager:
 
         raise RuntimeError(f"All providers failed. Last error: {last_error}") from last_error
 
+    def run(self, prompt: str, tools: dict = None) -> Any:
+        """
+        Compatibility bridge matching the Agent framework execution contract.
+        Forwards the call down to the fallback sequence and wraps the result 
+        in an object containing both .final_answer and .trace to satisfy Agent contracts.
+        """
+        raw_text = self.generate(prompt)
+        
+        # Create a lightweight wrapper object to mimic a structured response
+        class ProviderResponse:
+            def __init__(self, text: str):
+                self.final_answer = text
+                self.trace = {}  # Added to satisfy tracking contracts in executor agents
+                
+        return ProviderResponse(raw_text)
+    
     def set_providers(self, providers):
         seen = set()
         unique = []
@@ -60,8 +76,8 @@ class ProviderManager:
             if type(p) not in seen:
                 unique.append(p)
                 seen.add(type(p))
-        self.providers = unique
-
+        self.providers = unique        
+    
 # ---------------------------------------------------------------------------
 # Intended provider chain (future-ready documentation)
 # ---------------------------------------------------------------------------
