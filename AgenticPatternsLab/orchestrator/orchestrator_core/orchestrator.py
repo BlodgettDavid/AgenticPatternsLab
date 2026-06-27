@@ -40,13 +40,11 @@ def run_orchestrator(pattern_name, framework, provider, user_prompt=None):
         primary_provider_class = PROVIDER_REGISTRY[provider]
         primary = primary_provider_class()
 
-        # Explicit fallback chain
-        provider_chain = ProviderManager([
-            primary,
-            GeminiLLM(),
-            OllamaLLM(),
-            MockLLM()
-        ])
+        # Deduplicated fallback chain
+        defaults = [GeminiLLM(), OllamaLLM(), MockLLM()]
+        fallback_list = [primary] + [p for p in defaults if type(p) != type(primary)]
+        
+        provider_chain = ProviderManager(fallback_list)
 
 
     # ----------------------------------------------------------------------

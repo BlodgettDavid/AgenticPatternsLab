@@ -1,8 +1,8 @@
 """
 Provider Manager for the Agentic Patterns Lab.
 
-Coordinates multiple LLM providers and implements a clean fallback chain.
-Each provider is tried in order until one succeeds.
+Coordinates multiple LLM providers and implements a clean, sticky fallback chain.
+The manager remembers the last successful provider across sequential calls.
 """
 
 from typing import List, Any
@@ -12,11 +12,8 @@ class ProviderManager:
     def __init__(self, providers: List):
         """
         providers: an ordered list of provider instances.
-        The manager will try them in this order.
+        The manager will try them in this order, sticking to the successful one.
         """
-
-        # Remove duplicate provider types while preserving order
-
         seen = set()
         unique = []
 
@@ -26,23 +23,32 @@ class ProviderManager:
                 seen.add(type(p))
 
         self.providers = unique
+        # Track the active working index in the provider chain
+        self._current_provider_index = 0
 
-    
     def generate(self, prompt: str) -> str:
         """
-        Try each provider in order.
-        If one succeeds, return its result.
-        If all fail, raise a RuntimeError.
+        Try providers starting from the last known working provider index.
+        If a provider fails, dynamically shift the sticky index forward.
         """
         last_error = None
+        num_providers = len(self.providers)
 
-        for provider in self.providers:
+        # Loop through providers starting exactly where we last succeeded
+        for i in range(num_providers):
+            # Use modulo to wrap back around if needed, starting from the sticky index
+            actual_index = (self._current_provider_index + i) % num_providers
+            provider = self.providers[actual_index]
             provider_name = provider.__class__.__name__
+
             print(f"[ProviderManager] Trying provider: {provider_name}")
 
             try:
                 result = provider.generate(prompt)
                 print(f"[ProviderManager] Provider {provider_name} succeeded.")
+                
+                # Update the sticky marker to this index for all future calls
+                self._current_provider_index = actual_index
                 return result
 
             except Exception as e:
@@ -77,12 +83,5 @@ class ProviderManager:
                 unique.append(p)
                 seen.add(type(p))
         self.providers = unique        
-    
-# ---------------------------------------------------------------------------
-# Intended provider chain (future-ready documentation)
-# ---------------------------------------------------------------------------
-from AgenticPatternsLab.providers.mock_provider import MockLLM
-
-provider_manager = ProviderManager([
-    MockLLM(),
-])
+        # Reset tracker if providers list changes completely
+        self._current_provider_index = 0
