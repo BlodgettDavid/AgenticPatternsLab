@@ -1,0 +1,4 @@
+Computational Thinking Course Overview
+Week 5 Focus: The Forever Loop architecture wrapped around conditional loops.
+Goal: Teach students edge-case management and how to avoid accidental infinite memory leaks.
+Next Phase: Transition from Scratch block-based layout directly into structured Python scripts.
