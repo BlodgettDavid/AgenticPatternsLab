@@ -14,4 +14,4 @@ include = ["AgenticPatternsLab*"]
 
 [tool.pytest.ini_options]
 python_files = "test_*.py"
-testpaths = ["AgenticPatternsLab/patterns/react/pure_python"]
+testpaths = ["AgenticPatternsLab"]
