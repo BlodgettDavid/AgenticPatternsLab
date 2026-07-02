@@ -12,14 +12,18 @@ __pycache__/
 .idea/
 
 # Runtime logs
+# Ignore local application runtime trace logs
 logs/
 
-# Environment variables
+# Environment variables (Strictly Private)
 .env
 .env.*
 
+# Local Scratchpads & Private Notes
+.notes/
+private/
 
-# Docker
+# Docker & Temporary system files
 docker-compose.override.yml
 docker-data/
 *.pid
@@ -31,9 +35,8 @@ docker-data/
 .DS_Store
 Thumbs.db
 
-# Personal notes (keep private)
-docs/
-
-scripts/
-
+# Build & Package Distribution Artifacts
 *.egg-info/
+
+# Ignore personal scratchpad notes
+docs/notes.txt
