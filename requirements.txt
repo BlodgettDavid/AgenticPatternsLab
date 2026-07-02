@@ -115,3 +115,5 @@ yarl==1.23.0
 zstandard==0.25.0
 llama-index-readers-file
 llama-index-embeddings-huggingface
+fastapi
+uvicorn
