@@ -40,3 +40,7 @@ Thumbs.db
 
 # Ignore personal scratchpad notes
 docs/notes.txt
+
+
+# Local student registry session databases
+data/
