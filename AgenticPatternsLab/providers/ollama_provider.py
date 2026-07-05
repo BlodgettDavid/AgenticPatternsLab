@@ -34,8 +34,10 @@ class OllamaLLM:
 
                 raise RuntimeError(f"Ollama provider error: {e}")
 
-    def generate_structured(self, system_prompt: str, user_prompt: str, response_model: Type[BaseModel]) -> str:
-        """Forces the local Ollama model to format output exactly to the structural target schema."""
+    def generate_structured(self, system_prompt: str, user_prompt: str, response_model: Type[BaseModel]) -> Any:
+        """Forces the local Ollama model to format output exactly to the structural target schema
+        and returns an instantiated Pydantic object.
+        """
         backoff = self.initial_backoff
         
         # Combine system prompt guidelines and user text cleanly for the chat generation format
@@ -53,7 +55,10 @@ class OllamaLLM:
                     format=response_model.model_json_schema(), # Enforces structural JSON schema mapping
                     options={"temperature": 0.1}
                 )
-                return response["message"]["content"].strip()
+                raw_json = response["message"]["content"].strip()
+                
+                # Parse the raw JSON string directly into the expected Pydantic model instance
+                return response_model.model_validate_json(raw_json)
 
             except Exception as e:
                 retryable = ("connect" in str(e).lower() or "timeout" in str(e).lower())

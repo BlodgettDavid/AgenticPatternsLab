@@ -44,10 +44,9 @@ class MockLLM:
         )
     
     
-    def generate_structured(self, system_prompt: str, user_prompt: str, response_model: Type[BaseModel]) -> str:
+    def generate_structured(self, system_prompt: str, user_prompt: str, response_model: Type[BaseModel]) -> Any:
         """Simulates structured output generation by detecting the target Pydantic model
-
-        schema and returning valid JSON matching its exact keys.
+        schema and returning an instantiated Pydantic object matching its exact keys.
         """
         prompt_content = user_prompt.lower()
         
@@ -63,11 +62,10 @@ class MockLLM:
                 intent = "fail"
                 reasoning = "Mock classification: student explicitly requested instructional support."
                 
-            return json.dumps({"intent": intent, "reasoning": reasoning})
+            return response_model(intent=intent, reasoning=reasoning)
             
         # 2. Handle Evaluation Agent Target Schema 🎓
         elif response_model.__name__ == "EvaluationResponse":
-            # Simulate a correct submission unless it explicitly contains a typo/error keyword
             is_correct = True
             feedback = "Excellent work! Your computational logic is perfectly correct."
             
@@ -75,12 +73,19 @@ class MockLLM:
                 is_correct = False
                 feedback = "Reviewing code logic: structural flaw detected in your loop termination bounds."
                 
-            return json.dumps({"is_correct": is_correct, "feedback": feedback})
+            return response_model(is_correct=is_correct, feedback=feedback)
+
+        # 3. Handle Pedagogical Coach Agent Target Schema 🧠
+        elif response_model.__name__ == "CoachingResponse":
+            return response_model(
+                conceptual_hint="Look closely at the range boundaries of your loop. In Python, the upper bound is exclusive.",
+                guiding_question="If you want to print up to 5, what number should your range end at?"
+            )
             
-        # Fallback default dict matching fundamental string schemas
-        return json.dumps({"status": "success"})
-
-
+        # Fallback default object if unknown
+        return response_model()
+    
+    
     def run(self, prompt: str, tools: dict = None) -> Any:
         """Compatibility bridge matching the Agent framework execution contract."""
         raw_text = self.generate(prompt)
