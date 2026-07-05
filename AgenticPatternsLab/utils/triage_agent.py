@@ -38,15 +38,18 @@ class TriageAgent:
 
         try:
             # Route the call through our new structured fallback engine
-            json_string = self.provider.generate_structured(
+            triage_res = self.provider.generate_structured(
                 system_prompt=system_instructions,
                 user_prompt=user_prompt,
                 response_model=TriageResponse
             )
             
-            # Parse the clean string validation token back into our Pydantic object
-            data = json.loads(json_string)
-            return TriageResponse(**data)
+            # Handle string fallbacks safely (like from our custom MockProvider keys)
+            if isinstance(triage_res, str):
+                data = json.loads(triage_res)
+                return TriageResponse(**data)
+                
+            return triage_res
             
         except Exception as e:
             # Fallback to safety: if everything melts down, default to a benign derail to prevent state crashes
