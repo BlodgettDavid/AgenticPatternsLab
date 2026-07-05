@@ -45,31 +45,40 @@ class MockLLM:
     
     
     def generate_structured(self, system_prompt: str, user_prompt: str, response_model: Type[BaseModel]) -> str:
-        """Simulates structured output generation by parsing keywords and returning
+        """Simulates structured output generation by detecting the target Pydantic model
 
-        a valid JSON string matching the expected Pydantic response model.
+        schema and returning valid JSON matching its exact keys.
         """
         prompt_content = user_prompt.lower()
         
-        # Default fallback values
-        intent = "pass"
-        reasoning = "Mock evaluation: input looks like a valid submission."
+        # 1. Handle Triage Agent Target Schema
+        if response_model.__name__ == "TriageResponse":
+            intent = "pass"
+            reasoning = "Mock evaluation: input looks like a valid submission."
 
-        # Simulate Triage Agent Classifications
-        if "poem" in prompt_content or "weather" in prompt_content or "quantum" in prompt_content:
-            intent = "derail"
-            reasoning = "Mock classification: detected off-topic conversation or distraction."
-        elif "stuck" in prompt_content or "hint" in prompt_content or "help" in prompt_content:
-            intent = "fail"
-            reasoning = "Mock classification: student explicitly requested instructional support."
+            if "poem" in prompt_content or "weather" in prompt_content or "quantum" in prompt_content:
+                intent = "derail"
+                reasoning = "Mock classification: detected off-topic conversation or distraction."
+            elif "stuck" in prompt_content or "hint" in prompt_content or "help" in prompt_content:
+                intent = "fail"
+                reasoning = "Mock classification: student explicitly requested instructional support."
+                
+            return json.dumps({"intent": intent, "reasoning": reasoning})
             
-        # Build a dictionary conforming strictly to the requested schema keys
-        mock_data = {
-            "intent": intent,
-            "reasoning": reasoning
-        }
-        
-        return json.dumps(mock_data)
+        # 2. Handle Evaluation Agent Target Schema 🎓
+        elif response_model.__name__ == "EvaluationResponse":
+            # Simulate a correct submission unless it explicitly contains a typo/error keyword
+            is_correct = True
+            feedback = "Excellent work! Your computational logic is perfectly correct."
+            
+            if "error" in prompt_content or "broken" in prompt_content or "wrong" in prompt_content:
+                is_correct = False
+                feedback = "Reviewing code logic: structural flaw detected in your loop termination bounds."
+                
+            return json.dumps({"is_correct": is_correct, "feedback": feedback})
+            
+        # Fallback default dict matching fundamental string schemas
+        return json.dumps({"status": "success"})
 
 
     def run(self, prompt: str, tools: dict = None) -> Any:
