@@ -11,25 +11,27 @@ __pycache__/
 .vscode/
 .idea/
 
-# Runtime logs
-# Ignore local application runtime trace logs
+# Runtime Logs & Orchestrator State Snapshots
+# Prevents student state tracking files and local execution artifacts from leaking into git
 logs/
+.run/
+*.log
+*.pid
+*.sock
+*.tmp
 
 # Environment variables (Strictly Private)
 .env
 .env.*
 
-# Local Scratchpads & Private Notes
+# Local Scratchpads, Private Notes & Docs
 .notes/
 private/
+docs/notes.txt
 
-# Docker & Temporary system files
+# Docker infrastructure files
 docker-compose.override.yml
 docker-data/
-*.pid
-*.sock
-*.log
-*.tmp
 
 # OS-specific junk
 .DS_Store
@@ -37,10 +39,6 @@ Thumbs.db
 
 # Build & Package Distribution Artifacts
 *.egg-info/
-
-# Ignore personal scratchpad notes
-docs/notes.txt
-
 
 # Local student registry session databases
 data/

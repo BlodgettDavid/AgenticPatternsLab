@@ -10,16 +10,16 @@ from AgenticPatternsLab.providers.ollama_provider import OllamaLLM
 from AgenticPatternsLab.providers.mock_provider import MockLLM
 
 
-def run_orchestrator(pattern_name, framework, provider, user_prompt=None):
+def run_orchestrator(pattern_name, framework, provider, user_prompt=None, resume=False):
 
     print("Running the Agentic Patterns Orchestrator...")
-    print(f"Pattern: {pattern_name}, Framework: {framework}, Provider: {provider}")
+    print(f"Pattern: {pattern_name}, Framework: {framework}, Provider: {provider}, Resume: {resume}")
 
     log_path = create_logger(prefix="orchestrator")
     log_event(
         log_path,
         "start",
-        f"pattern={pattern_name}, framework={framework}, provider={provider}, prompt={user_prompt}"
+        f"pattern={pattern_name}, framework={framework}, provider={provider}, prompt={user_prompt}, resume={resume}"
     )
 
     # ----------------------------------------------------------------------
@@ -46,25 +46,28 @@ def run_orchestrator(pattern_name, framework, provider, user_prompt=None):
         
         provider_chain = ProviderManager(fallback_list)
 
-
     # ----------------------------------------------------------------------
-    # Dynamic import of the runner module
+    # Dynamic import routing override for the custom multi-agent triage pattern
     # ----------------------------------------------------------------------
-    module_path = f"AgenticPatternsLab.patterns.{pattern_name}.{framework}.{pattern_name}_runner"
+    if pattern_name == "triage":
+        module_path = "AgenticPatternsLab.patterns.multi_agent_triage.custom.multi_agent_triage_runner"
+        function_name = "run_multi_agent_triage_pattern"
+    else:
+        module_path = f"AgenticPatternsLab.patterns.{pattern_name}.{framework}.{pattern_name}_runner"
+        function_name = f"run_{pattern_name}_pattern"
 
     try:
         module = importlib.import_module(module_path)
         log_event(log_path, "import_success", module_path)
 
-        function_name = f"run_{pattern_name}_pattern"
         pattern_fn = getattr(module, function_name)
         log_event(log_path, "runner_call", function_name)
 
-        # Pass provider manager instead of a single provider
+        # Pass provider manager and include our asynchronous resume flag
         if user_prompt is not None:
-            pattern_fn(provider_chain, user_prompt)
+            pattern_fn(provider_chain, user_prompt, resume=resume)
         else:
-            pattern_fn(provider_chain)
+            pattern_fn(provider_chain, resume=resume)
 
         log_event(log_path, "complete", "orchestrator finished")
 
@@ -76,5 +79,5 @@ def run_orchestrator(pattern_name, framework, provider, user_prompt=None):
         print("⚠ AttributeError occurred inside the runner or during getattr():")
         print("   ", e)
         print(f"While loading: {module_path}.py")
-        print(f"Expected function: run_{pattern_name}_pattern")
+        print(f"Expected function: {function_name}")
         raise
