@@ -1,5 +1,12 @@
 import sys
 from AgenticPatternsLab.orchestrator.orchestrator_core.orchestrator import run_orchestrator
+#import os
+
+from dotenv import load_dotenv
+
+# Explicitly load the local .env file into the runtime environment
+load_dotenv()
+
 
 def print_usage():
     print(
