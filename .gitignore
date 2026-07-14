@@ -1,11 +1,12 @@
 # Virtual environment
 .venv/
 
-# Python cache
+# Python cache & test artifacts
 __pycache__/
 *.pyc
 *.pyo
 *.pyd
+.pytest_cache/
 
 # IDE / editor settings
 .vscode/
@@ -35,6 +36,7 @@ Thumbs.db
 
 # Build & Package Distribution Artifacts
 *.egg-info/
+AgenticPatternsLab.egg-info/
 
 # Local student registry session databases
 data/
