@@ -44,7 +44,8 @@ git clone https://github.com/YOUR_USERNAME/AgenticPatternsLab.git
 cd AgenticPatternsLab
 
 ### Step 2: Verify Python & Create a Virtual Environment
-Ensure you have Python 3.10 or greater installed. Create and activate an isolated virtual environment to keep dependencies clean:
+Ensure you have Python 3.11.9 installed (the core environment this engine was developed and tested on). Create and activate an isolated virtual environment to keep dependencies clean:
+
 python --version
 python -m venv .venv
 
@@ -53,6 +54,7 @@ Windows Command Prompt activation:
 
 macOS / Linux / Git Bash activation:
 source .venv/bin/activate
+
 
 ### Step 3: Install the Optimized Dependencies
 Install the required packages using the project's pinned, zero-bloat requirements manifesto:
