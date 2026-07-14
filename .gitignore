@@ -29,10 +29,6 @@ logs/
 private/
 docs/notes.txt
 
-# Docker infrastructure files
-docker-compose.override.yml
-docker-data/
-
 # OS-specific junk
 .DS_Store
 Thumbs.db
