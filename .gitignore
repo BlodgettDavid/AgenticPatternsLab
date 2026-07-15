@@ -14,7 +14,8 @@ __pycache__/
 
 # Runtime Logs & Orchestrator State Snapshots
 # Prevents student state tracking files and local execution artifacts from leaking into git
-logs/
+logs/*
+!logs/.gitkeep
 .run/
 *.log
 *.pid
@@ -37,6 +38,3 @@ Thumbs.db
 # Build & Package Distribution Artifacts
 *.egg-info/
 AgenticPatternsLab.egg-info/
-
-# Local student registry session databases
-data/

@@ -1,0 +1,42 @@
+{
+    "session_id": "test_student_101",
+    "student_name": "Dave",
+    "current_lesson_id": "remediation",
+    "is_active": true,
+    "metrics": {
+        "attempts_count": 1,
+        "completed_lessons": [
+            "remediation"
+        ],
+        "flagged_concepts": [
+            "loops_logic"
+        ],
+        "last_interaction": "2026-07-03T09:12:35.894872Z"
+    },
+    "chat_history": [
+        {
+            "role": "user",
+            "content": "My answer is 10"
+        },
+        {
+            "role": "user",
+            "content": "Can you write a poem about quantum computers?"
+        },
+        {
+            "role": "user",
+            "content": "for i in range(5): print(i)"
+        },
+        {
+            "role": "user",
+            "content": "I am completely stuck and need help with this hint!"
+        },
+        {
+            "role": "user",
+            "content": "Can you write a poem about quantum computers?"
+        },
+        {
+            "role": "user",
+            "content": "Can you write a poem about quantum computers?"
+        }
+    ]
+}
