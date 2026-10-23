@@ -5,6 +5,19 @@
 google-genai>=1.69.0
 ollama>=0.6.1
 
+# Model Context Protocol (MCP) Execution Engine (Pinned to 1.x for FastMCP API stability)
+mcp>=1.2.0,<2.0.0
+
+
+# Quantum Framework & Simulation Engine (Qiskit Stack)
+qiskit>=2.0.0
+qiskit-aer>=0.16.0
+qiskit-machine-learning>=0.8.0
+
+# Classical Computation & Benchmarking
+numpy>=1.26.0
+scikit-learn>=1.4.0
+
 # Configuration & Core Utilities
 python-dotenv>=1.2.2
 click>=8.3.1
