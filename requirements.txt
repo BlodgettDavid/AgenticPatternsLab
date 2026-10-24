@@ -28,3 +28,6 @@ httpx>=0.28.1
 
 # Development & Testing
 pytest>=9.0.3
+
+# Visualization & Plotting
+matplotlib>=3.8.0
