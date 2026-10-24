@@ -10,6 +10,13 @@ from qiskit.quantum_info import SparsePauliOp, Statevector
 from qiskit.circuit.library import PauliEvolutionGate
 from qiskit.synthesis import LieTrotter
 
+
+'''
+Hamiltonian Simulation: Accurately evolved the transverse-field Ising model via 
+Trotterized product formulas, outputting exact statevector probabilities and circuit metrics.
+'''
+
+
 def register_sim_tools(mcp) -> None:
 
     @mcp.tool()

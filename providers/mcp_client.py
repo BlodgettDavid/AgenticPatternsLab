@@ -51,7 +51,6 @@ class MCPClientProvider:
         Spawns the FastMCP server process over stdio, handshakes, invokes the target tool,
         and returns the parsed JSON response payload.
         """
-        # Ensure subprocess can locate local packages and run unbuffered
         env = os.environ.copy()
         env["PYTHONPATH"] = os.getcwd()
         env["PYTHONUNBUFFERED"] = "1"
@@ -68,7 +67,11 @@ class MCPClientProvider:
                 result = await session.call_tool(tool_name, arguments)
                 
                 if result.content and hasattr(result.content[0], "text"):
-                    return json.loads(result.content[0].text)
+                    raw_text = result.content[0].text
+                    try:
+                        return json.loads(raw_text)
+                    except json.JSONDecodeError:
+                        return {"status": "error", "message": f"Invalid JSON received: {raw_text}"}
                 return {"status": "error", "message": "Empty response from MCP server"}
 
 

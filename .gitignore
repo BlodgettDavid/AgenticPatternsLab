@@ -38,3 +38,9 @@ Thumbs.db
 # Build & Package Distribution Artifacts
 *.egg-info/
 AgenticPatternsLab.egg-info/
+
+# Ignore all contents inside the results/ directory
+results/*
+
+# But explicitly allow the .gitkeep file so the folder structure is tracked
+!results/.gitkeep
