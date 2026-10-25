@@ -1,0 +1,83 @@
+{
+    "timestamp": "2026-10-25T00:57:03.368853",
+    "benchmarks": {
+        "qml_kernel": {
+            "status": "success",
+            "matrix_shape": [
+                3,
+                3
+            ],
+            "kernel_matrix": [
+                [
+                    0.9999999999999999,
+                    0.19843433378446185,
+                    0.1403342715912002
+                ],
+                [
+                    0.19843433378446187,
+                    0.9999999999999993,
+                    0.8877538337583247
+                ],
+                [
+                    0.14033427159120024,
+                    0.8877538337583247,
+                    1.0000000000000004
+                ]
+            ],
+            "feature_dimension": 2,
+            "entanglement": "linear"
+        },
+        "qaoa_optimization": {
+            "status": "success",
+            "nodes": 4,
+            "p_steps": 2,
+            "optimal_energy": -0.8906229658297722,
+            "optimal_parameters": [
+                2.333463566816911,
+                2.723242468818425,
+                2.6027643279422,
+                1.421481749778218
+            ],
+            "top_bitstrings": [
+                {
+                    "bitstring": "0110",
+                    "probability": 0.25845970245678634
+                },
+                {
+                    "bitstring": "1001",
+                    "probability": 0.25845970245678623
+                },
+                {
+                    "bitstring": "1100",
+                    "probability": 0.0656568291374736
+                }
+            ],
+            "optimizer_evals": 40
+        },
+        "hamiltonian_simulation": {
+            "status": "success",
+            "num_qubits": 2,
+            "evolution_time": 1.5,
+            "trotter_steps": 3,
+            "circuit_depth": 1,
+            "top_states": [
+                {
+                    "bitstring": "00",
+                    "probability": 0.6912673760629423
+                },
+                {
+                    "bitstring": "11",
+                    "probability": 0.1271498917755135
+                },
+                {
+                    "bitstring": "01",
+                    "probability": 0.09079136608077208
+                },
+                {
+                    "bitstring": "10",
+                    "probability": 0.09079136608077204
+                }
+            ]
+        }
+    }
+}
