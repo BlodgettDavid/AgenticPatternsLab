@@ -1,6 +1,8 @@
 import sys
-from orchestrator.orchestrator_core.orchestrator import run_orchestrator
 from dotenv import load_dotenv
+from orchestrator.orchestrator_core.orchestrator import run_orchestrator
+from utils.session_manager import SessionManager
+from utils.session_models import SessionState
 
 # Explicitly load the local .env file into the runtime environment
 load_dotenv()
@@ -13,6 +15,7 @@ def print_usage():
         "[--framework <framework_name>] "
         "[--provider <provider_name>] "
         "[--prompt \"your question\"] "
+        "[--session-id <session_id>] "
         "[--resume]\n"
     )
 
@@ -32,6 +35,19 @@ def main():
         idx = sys.argv.index("--prompt")
         if idx + 1 < len(sys.argv):
             user_prompt = sys.argv[idx + 1]
+
+    # Extract optional --session-id
+    session_id = "default_session"
+    if "--session-id" in sys.argv:
+        idx = sys.argv.index("--session-id")
+        if idx + 1 < len(sys.argv):
+            session_id = sys.argv[idx + 1]
+
+    # Initialize Session Manager & load/create session state
+    session_manager = SessionManager()
+    session = session_manager.load_session(session_id)
+    if not session:
+        session = SessionState(session_id=session_id)
 
     # RUN COMMAND
     if command == "run":
@@ -54,8 +70,22 @@ def main():
             if idx + 1 < len(sys.argv):
                 provider = sys.argv[idx + 1]
 
-        # Pass the resume flag down to the orchestrator
-        run_orchestrator(pattern_name, framework, provider, user_prompt, resume=resume)
+        # Execute the orchestrator, passing the active session down
+        # (Ensure your run_orchestrator signature accepts a `session` argument)
+        try:
+            run_orchestrator(
+                pattern_name=pattern_name,
+                framework=framework,
+                provider=provider,
+                prompt=user_prompt,
+                session=session,
+                resume=resume
+            )
+        finally:
+            # Always commit session state changes back to disk on exit
+            session_manager.save_session(session)
+            print(f"[Session Manager] Session '{session.session_id}' successfully persisted.")
+
         return
 
     print(f"Unknown command: {command}\n")
