@@ -1,13 +1,27 @@
 import ast
 import operator
+from typing import Any, Dict
+from utils.tool_base import BaseTool
 
-class CalculatorTool:
+
+class CalculatorTool(BaseTool):
     """
     A deterministic, safe arithmetic expression evaluator.
     Supports +, -, *, /, **, and parentheses.
     """
 
-    name = "calculate"
+    name = "calculator"
+    description = "A deterministic, safe arithmetic expression evaluator."
+    parameters_schema: Dict[str, Any] = {
+        "type": "object",
+        "properties": {
+            "expression": {
+                "type": "string",
+                "description": "The mathematical expression to evaluate.",
+            }
+        },
+        "required": ["expression"],
+    }
 
     # Allowed operators
     OPERATORS = {
@@ -19,8 +33,11 @@ class CalculatorTool:
         ast.USub: operator.neg,
     }
 
-    def run(self, expression: str) -> str:
-        expression = expression.strip()
+    def run(self, expression: str = "", **kwargs: Any) -> str:
+        if not expression and "expression" in kwargs:
+            expression = kwargs.get("expression", "")
+        expression = str(expression).strip()
+        
         if not expression:
             return "No expression provided."
 

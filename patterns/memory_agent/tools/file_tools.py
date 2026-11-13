@@ -1,14 +1,28 @@
 import os
+from typing import Any, Dict
+from utils.tool_base import BaseTool
 
-class FileTools:
+
+class FileTools(BaseTool):
     """
     Safe, deterministic file operations for the MemoryAgent tool system.
     Supports read, write, append, and delete.
     """
 
     name = "file"
+    description = "Performs safe file operations (read, write, append, delete)."
+    parameters_schema: Dict[str, Any] = {
+        "type": "object",
+        "properties": {
+            "action": {"type": "string", "enum": ["read", "write", "append", "delete"]},
+            "filename": {"type": "string"},
+            "content": {"type": "string"}
+        },
+        "required": ["action", "filename"]
+    }
 
     def __init__(self, base_dir="."):
+        super().__init__()
         # Restrict file operations to a safe root
         self.base_dir = os.path.abspath(base_dir)
 
@@ -32,7 +46,7 @@ class FileTools:
         except Exception:
             return f"Error reading file: {filename}"
 
-    def write(self, filename: str, content: str) -> str:
+    def write(self, filename: str, content: str = "") -> str:
         try:
             path = self._safe_path(filename)
             with open(path, "w", encoding="utf-8") as f:
@@ -41,7 +55,7 @@ class FileTools:
         except Exception:
             return f"Error writing file: {filename}"
 
-    def append(self, filename: str, content: str) -> str:
+    def append(self, filename: str, content: str = "") -> str:
         try:
             path = self._safe_path(filename)
             with open(path, "a", encoding="utf-8") as f:
@@ -59,3 +73,20 @@ class FileTools:
             return f"File not found: {filename}"
         except Exception:
             return f"Error deleting file: {filename}"
+
+    def run(self, **kwargs: Any) -> Any:
+        """Unified BaseTool execution interface."""
+        action = kwargs.get("action", "read")
+        filename = kwargs.get("filename", "")
+        content = kwargs.get("content", "")
+
+        if action == "read":
+            return self.read(filename)
+        elif action == "write":
+            return self.write(filename, content)
+        elif action == "append":
+            return self.append(filename, content)
+        elif action == "delete":
+            return self.delete(filename)
+        else:
+            raise ValueError(f"Unknown file action: {action}")
