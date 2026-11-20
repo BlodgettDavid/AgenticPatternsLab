@@ -1,4 +1,8 @@
-class SearchTool:
+from typing import Any, Dict
+from utils.tool_base import BaseTool
+
+
+class SearchTool(BaseTool):
     """
     A minimal deterministic search tool.
     This is intentionally simple so that StrictReactEngine
@@ -12,9 +16,22 @@ class SearchTool:
     """
 
     name = "search"
+    description = "Performs deterministic mock searches for keywords like quantum computing, machine learning, python, and qiskit."
+    parameters_schema: Dict[str, Any] = {
+        "type": "object",
+        "properties": {
+            "query": {
+                "type": "string",
+                "description": "The search query term.",
+            }
+        },
+        "required": ["query"],
+    }
 
-    def run(self, query: str) -> str:
-        query = query.strip()
+    def run(self, query: str = "", **kwargs: Any) -> str:
+        if not query and "query" in kwargs:
+            query = kwargs.get("query", "")
+        query = str(query).strip()
 
         if not query:
             return "No query provided."

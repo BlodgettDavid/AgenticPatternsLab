@@ -15,20 +15,24 @@ async def main():
             "timestamp": datetime.now().isoformat(),
             "benchmarks": {}
         }
-        
+
         # 1. QML Kernel Benchmark
         print("\n[1/3] Running QML Kernel Gram Matrix Benchmark...")
         qml_res = await provider.call_tool(
-            "execute_qsvm_kernel",
+            "execute_agent_tool",
             {
-                "data_points": [[0.1, 0.2], [0.5, 0.6], [0.9, 0.8]],
-                "feature_dimension": 2,
-                "reps": 2,
-                "entanglement": "linear"
+                "tool_name": "execute_qsvm_kernel",
+                "payload": {
+                    "data_points": [[0.1, 0.2], [0.5, 0.6], [0.9, 0.8]],
+                    "feature_dimension": 2,
+                    "reps": 2,
+                    "entanglement": "linear"
+                }
             }
         )
         results["benchmarks"]["qml_kernel"] = qml_res
-        
+
+
         # 2. QAOA Optimization Benchmark
         print("[2/3] Running QAOA Max-Cut Optimization Benchmark...")
         graph = [
@@ -38,15 +42,19 @@ async def main():
             [0.0, 1.0, 1.0, 0.0]
         ]
         opt_res = await provider.call_tool(
-            "execute_qaoa_solver",
+            "execute_agent_tool",
             {
-                "adjacency_matrix": graph,
-                "p_steps": 2,
-                "maxiter": 40
+                "tool_name": "execute_qaoa_solver",
+                "payload": 
+                {
+                    "adjacency_matrix": graph,
+                    "p_steps": 2,
+                    "maxiter": 40
+                }
             }
         )
         results["benchmarks"]["qaoa_optimization"] = opt_res
-        
+
         # 3. Hamiltonian Simulation Benchmark
         print("[3/3] Running Trotterized Simulation Benchmark...")
         hamiltonian_terms = [
@@ -55,14 +63,19 @@ async def main():
             ["XI", 0.5]
         ]
         sim_res = await provider.call_tool(
-            "execute_trotter_simulation",
+            "execute_agent_tool",
             {
-                "pauli_terms": hamiltonian_terms,
-                "time": 1.5,
-                "trotter_steps": 3
+                "tool_name": "execute_trotter_simulation",
+                "payload": 
+                {
+                    "pauli_terms": hamiltonian_terms,
+                    "time": 1.5,
+                    "trotter_steps": 3
+                }
             }
         )
         results["benchmarks"]["hamiltonian_simulation"] = sim_res
+
         
         # Save aggregated benchmark log into results/
         output_filename = os.path.join("results", "quantum_benchmark_results.json")

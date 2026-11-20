@@ -3,8 +3,63 @@
 from dataclasses import dataclass
 from typing import Any, Dict, Callable
 
-from ...react.shared.react_engine import StrictReactEngine
+import re
 
+
+try:
+    # TODO(strict-react): Replace with formal StrictReactEngine implementation once
+    # patterns.react.shared.react_engine is built to our desired spec.
+    from ...react.shared.react_engine import StrictReactEngine
+except ImportError:
+    # TEMPORARY SHIM for global test execution only:
+    # - Revisit Thought / Action / Final Answer parsing edge cases (multi-line
+    #   thoughts, escaped quotes in tool args, malformed action syntax).
+    # - Confirm history schema/types match what downstream callers and tests expect.
+    # - Decide on max_steps / loop-termination behavior when no Final Answer is emitted.
+    # - Remove this fallback class once the real StrictReactEngine module is in place.
+    class StrictReactEngine:
+        def __init__(self, llm_callback, tool_callback=None, max_steps=10):
+            self.llm_callback = llm_callback
+            self.tool_callback = tool_callback
+            self.max_steps = max_steps
+            self.history = []
+
+        def run(self, prompt: str) -> str:
+            current_prompt = prompt
+            self.history = []
+
+            for _ in range(self.max_steps):
+                output = self.llm_callback(current_prompt)
+                thought_match = re.search(r"Thought:\s*(.+)", output)
+                thought = thought_match.group(1).strip() if thought_match else ""
+
+                final_match = re.search(r"Final Answer:\s*(.+)", output, re.DOTALL)
+                if final_match:
+                    final_answer = final_match.group(1).strip()
+                    self.history.append({
+                        "thought": thought,
+                        "final_answer": final_answer,
+                    })
+                    return final_answer
+
+                action_match = re.search(r"Action:\s*([a-zA-Z0-9_]+)\((['\"])(.*?)\2\)", output)
+                if action_match and self.tool_callback:
+                    tool_name, _, query = action_match.groups()
+                    observation = self.tool_callback(tool_name, query)
+                    self.history.append({
+                        "thought": thought,
+                        "action": f"{tool_name}({query})",
+                        "observation": observation,
+                    })
+                    current_prompt = f"{current_prompt}\n{output}\nObservation: {observation}"
+                else:
+                    self.history.append({
+                        "thought": thought,
+                        "raw": output,
+                    })
+                    current_prompt = f"{current_prompt}\n{output}\nObservation: No action executed."
+
+            return "Max steps reached without Final Answer."
 
 @dataclass
 class RunnerResult:
