@@ -43,21 +43,20 @@ def test_memory_agent_strict_react():
                 "Thought: I should search memory.\n"
                 "Action: search_memory('France')"
             )
-
-        if "No relevant memory found" in prompt:
-            # Second step → write memory
-            return (
-                "Thought: I should store the capital.\n"
-                "Action: write_memory('Paris is the capital of France')"
-            )
-
+        
         if "Memory stored" in prompt:
-            # Final step → produce final answer
             return (
                 "Thought: I now know the answer.\n"
                 "Final Answer: The capital of France is Paris."
             )
 
+        if "No relevant memory found" in prompt:
+            return (
+                "Thought: I should store the capital.\n"
+                "Action: write_memory('Paris is the capital of France')"
+            )
+        
+        
         # Safety fallback
         return "Thought: I am confused.\nFinal Answer: Unknown."
 

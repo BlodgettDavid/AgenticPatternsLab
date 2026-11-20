@@ -23,7 +23,8 @@ from mcp.client.stdio import stdio_client
 class MCPClientProvider:
     """Interface for invoking tools on local FastMCP servers via stdio transport."""
 
-    def __init__(self, server_module: str = "mcp_server.quantum_server"):
+
+    def __init__(self, server_module: str = "quantum_mcp_server.quantum_mcp_server"):
         self.server_module = server_module
         self._session: Optional[ClientSession] = None
         self._exit_stack = None

@@ -1,5 +1,6 @@
 import os
 import datetime
+import json
 
 # ----------------------------------------------------------------------
 # ROOT-ANCHORED RUNTIME PATH MANAGEMENT
@@ -33,8 +34,28 @@ def create_logger(prefix="react"):
     path = get_log_path(prefix)
     return path
 
-
 def log_event(path, label, content):
     timestamp = datetime.datetime.now().strftime("%H:%M:%S")
     with open(path, "a", encoding="utf-8") as f:
         f.write(f"[{timestamp}] {label.upper()}: {content}\n")
+
+def log_execution_artifact(pipeline_type: str, run_name: str, data: Dict[str, Any]) -> str:
+    """Saves execution payloads, routing decisions, and metrics to artifacts_pipeline/."""
+    target_dir = os.path.join(REPO_ROOT, "artifacts_pipeline", pipeline_type)
+    os.makedirs(target_dir, exist_ok=True)
+    
+    timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+    filename = f"{run_name}_{timestamp}.json"
+    filepath = os.path.join(target_dir, filename)
+
+    payload_record = {
+        "timestamp": datetime.datetime.now().isoformat(),
+        "pipeline_type": pipeline_type,
+        "run_name": run_name,
+        **data
+    }
+
+    with open(filepath, "w", encoding="utf-8") as f:
+        json.dump(payload_record, f, indent=2)
+
+    return filepath

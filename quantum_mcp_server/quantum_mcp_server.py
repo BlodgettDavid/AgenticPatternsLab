@@ -13,19 +13,27 @@ from utils.tool_registry import global_tool_registry
 # Import heuristic routing engine for Iteration 3
 from quantum_mcp_server.router_engine import router_engine
 
-# Import real production tools from Iteration 2
+# Import real production tools from Iteration 2 & Iteration 3 benchmark extensions
 from patterns.memory_agent.tools.calculator_tool import CalculatorTool
 from patterns.memory_agent.tools.code_execution_tool import CodeExecutionTool
 from patterns.memory_agent.tools.file_tools import FileTools
 from patterns.memory_agent.tools.search_tool import SearchTool
 from patterns.memory_agent.tools.web_fetch_tool import WebFetchTool
+from patterns.memory_agent.tools.qml_simulator_tool import QMLSimulatorTool
+from patterns.memory_agent.tools.execute_qsvm_kernel_tool import ExecuteQSVMKernelTool
+from patterns.memory_agent.tools.execute_qaoa_solver_tool import ExecuteQAOASolverTool
+from patterns.memory_agent.tools.execute_trotter_simulation_tool import ExecuteTrotterSimulationTool
 
-# Register tool instances into the global registry
+# Register tool instances into the global registry using the project's native method
 global_tool_registry.register(CalculatorTool())
 global_tool_registry.register(CodeExecutionTool())
 global_tool_registry.register(FileTools())
 global_tool_registry.register(SearchTool())
 global_tool_registry.register(WebFetchTool())
+global_tool_registry.register(QMLSimulatorTool())
+global_tool_registry.register(ExecuteQSVMKernelTool())
+global_tool_registry.register(ExecuteQAOASolverTool())
+global_tool_registry.register(ExecuteTrotterSimulationTool())
 
 # Initialize FastMCP Server instance
 mcp = FastMCP("QuantumMCPServer")
